@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>کتابخانه فنی ایستا نوآوران نیرو</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{
+    --ink:#101c2c;
+    --ink-2:#1b2c42;
+    --steel:#3a4f6b;
+    --steel-line:#c9cfd9;
+    --paper:#f1efe8;
+    --paper-2:#ffffff;
+    --amber:#dd9a2e;
+    --amber-deep:#b87a1a;
+    --text:#1b2431;
+    --text-dim:#5b6472;
+    --danger:#a53f3f;
+    --radius: 3px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  html{scroll-padding-top: calc(150px + env(safe-area-inset-top,0px));}
+  body{
+    background:var(--paper);
+    color:var(--text);
+    font-family:'Vazirmatn', Tahoma, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding-top: env(safe-area-inset-top,0px);
+    padding-bottom: env(safe-area-inset-bottom,0px);
+    min-height:100%;
+  }
+  .mono{ font-family:'IBM Plex Mono','Vazirmatn',monospace; direction:ltr; unicode-bidi:isolate; }
+
+  /* ===== Header ===== */
+  header{
+    background: linear-gradient(180deg, var(--ink) 0%, var(--ink-2) 100%);
+    color:#eef1f5;
+    padding: env(safe-area-inset-top,0px) 0 0 0;
+    border-bottom: 4px solid var(--amber);
+    position:relative;
+    overflow:hidden;
+  }
+  header::before{
+    content:"";
+    position:absolute; inset:0;
+    background-image:
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 42px),
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 42px);
+    pointer-events:none;
+  }
+  .header-inner{
+    position:relative;
+    max-width:900px; margin:0 auto;
+    padding: 22px 20px 20px 172px;
+  }
+  .clock-widget{
+    position:absolute;
+    top: calc(16px + env(safe-area-inset-top,0px));
+    left: 18px;
+    display:flex; flex-direction:column; align-items:center; gap:5px;
+    z-index:2;
+    width:150px;
+  }
+  .clock-date{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px; font-weight:600; color:#e9c680; letter-spacing:.01em;
+    white-space:nowrap;
+  }
+  .daily-quote{
+    font-size:10.5px; color:#c2cbd8; text-align:center;
+    line-height:1.6; max-width:150px;
+  }
+  .brand-row{
+    display:flex; align-items:flex-start; justify-content:space-between; gap:14px; flex-wrap:wrap;
+  }
+  .brand-left{ min-width:0; }
+  .eyebrow{
+    font-size:12.5px; color:#a9b6c6; letter-spacing:.02em; margin:0 0 6px;
+  }
+  .eyebrow b{ color:#e9c680; font-weight:700;}
+  h1{
+    margin:0; font-size: clamp(26px, 6vw, 34px); font-weight:900; line-height:1.25;
+    letter-spacing:0;
+  }
+  .subtitle{ margin:6px 0 0; color:#c2cbd8; font-size:14.5px; }
+  .stats{
+    display:flex; gap:0; border:1px solid #33455e; border-radius:var(--radius); overflow:hidden;
+    flex-shrink:0; background:rgba(255,255,255,0.02);
+  }
+  .stat{ padding:9px 16px; text-align:center; border-inline-start:1px solid #33455e;}
+  .stat:first-child{ border-inline-start:none; }
+  .stat b{ display:block; font-size:19px; color:var(--amber); font-family:'IBM Plex Mono',monospace; }
+  .stat span{ display:block; font-size:11px; color:#9fabbb; margin-top:2px;}
+
+  .notice{
+    margin-top:16px;
+    background: rgba(221,154,46,0.12);
+    border: 1px solid rgba(221,154,46,0.4);
+    border-inline-start: 4px solid var(--amber);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: 13.5px;
+    color:#f1e6cd;
+    line-height:1.9;
+  }
+
+  /* ===== Controls (sticky) ===== */
+  .controls{
+    position:sticky; top:0; z-index:20;
+    background: var(--paper);
+    border-bottom:2px solid var(--ink);
+    padding-top: env(safe-area-inset-top,0px);
+  }
+  .controls-inner{ max-width:900px; margin:0 auto; padding:12px 20px; }
+  .search-wrap{ position:relative; }
+  .search-wrap input{
+    width:100%;
+    font-family:inherit;
+    font-size:16px;
+    padding:12px 44px 12px 14px;
+    border:2px solid var(--ink);
+    border-radius:var(--radius);
+    background:var(--paper-2);
+    color:var(--text);
+    outline:none;
+  }
+  .search-wrap input:focus{ border-color:var(--amber-deep); box-shadow:0 0 0 3px rgba(221,154,46,0.2);}
+  .search-icon{
+    position:absolute; inset-inline-end:14px; top:50%; transform:translateY(-50%);
+    width:18px; height:18px; color:var(--steel);
+  }
+  .chips{
+    display:flex; gap:7px; overflow-x:auto; margin-top:10px; padding-bottom:2px;
+    scrollbar-width:thin;
+  }
+  .chip{
+    flex-shrink:0;
+    font-family:inherit; font-size:13px; font-weight:600;
+    padding:7px 13px;
+    border:1.5px solid var(--steel-line);
+    background:var(--paper-2);
+    color:var(--text-dim);
+    border-radius:20px;
+    cursor:pointer;
+    white-space:nowrap;
+    transition: background .12s, color .12s, border-color .12s;
+  }
+  .chip:hover{ border-color:var(--steel); }
+  .chip.active{
+    background:var(--ink); border-color:var(--ink); color:#fff;
+  }
+  .chip .n{ opacity:.7; margin-inline-start:4px; font-family:'IBM Plex Mono',monospace; font-size:11.5px;}
+
+  /* ===== Content ===== */
+  main{ max-width:900px; margin:0 auto; padding: 18px 20px 60px; }
+
+  .category-block{ margin-bottom: 28px; }
+  .category-head{
+    display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+    border-bottom:2px solid var(--ink);
+    padding-bottom:7px; margin-bottom:2px;
+  }
+  .category-head h2{
+    margin:0; font-size:17px; font-weight:800; color:var(--ink);
+    padding-inline-start:10px; border-inline-start:5px solid var(--amber);
+  }
+  .category-head .count{
+    font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--text-dim); flex-shrink:0;
+  }
+
+  .book-row{
+    display:grid;
+    grid-template-columns: 34px 1fr auto;
+    gap:10px 12px;
+    align-items:center;
+    padding:11px 4px;
+    border-bottom:1px solid var(--steel-line);
+  }
+  .book-row:last-child{ border-bottom:none; }
+  .book-idx{
+    font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--text-dim);
+    text-align:center;
+  }
+  .book-name{ font-size:15px; font-weight:500; line-height:1.55; }
+  .book-desc{ font-size:12.5px; color:var(--text-dim); margin-top:2px; }
+  .book-count{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px; font-weight:600;
+    background:var(--paper-2); border:1px solid var(--steel-line);
+    border-radius:20px; padding:3px 10px;
+    color:var(--steel);
+    white-space:nowrap;
+  }
+  .book-count.multi{ border-color: var(--amber-deep); color:var(--amber-deep); background:rgba(221,154,46,0.08);}
+  .book-count{ cursor:not-allowed; user-select:none; transition: transform .08s; opacity:0.85; }
+  .book-count.is-admin{ cursor:pointer; opacity:1; }
+  .book-count.is-admin:active{ transform:scale(0.95); }
+  .book-count.borrowed{
+    border-color: var(--danger); color:#fff; background:var(--danger);
+  }
+  .book-count.partial{
+    border-color: var(--amber-deep); color:#fff; background:var(--amber-deep);
+  }
+  .book-borrower{
+    display:block; font-size:11px; color:var(--danger); margin-top:2px; font-weight:600;
+  }
+  .book-actions{
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+  }
+  .book-admin-actions{
+    display:flex; gap:5px;
+  }
+  .icon-btn{
+    width:27px; height:27px; border-radius:6px;
+    border:1.5px solid var(--steel-line); background:var(--paper-2);
+    font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    padding:0;
+  }
+  .icon-btn.danger{ border-color:var(--danger); }
+  .icon-btn:active{ transform:scale(0.92); }
+  .admin-btn{
+    flex-shrink:0;
+    font-family:inherit; font-size:13px; font-weight:700;
+    padding:8px 14px;
+    border:none; border-radius:20px;
+    background:var(--amber); color:#fff;
+    cursor:pointer; white-space:nowrap;
+    display:inline-flex; align-items:center; gap:4px;
+  }
+  .modal-overlay{
+    display:none; position:fixed; inset:0; background:rgba(10,15,22,0.6);
+    align-items:center; justify-content:center; z-index:100; padding:20px;
+  }
+  .modal-overlay.open{ display:flex; }
+  .modal-card{
+    background:var(--paper-2); border-radius:8px; padding:24px;
+    width:100%; max-width:360px;
+  }
+  .modal-card h3{ margin:0 0 16px; font-size:17px; color:var(--ink); }
+  .modal-card label{ display:block; font-size:13px; color:var(--text-dim); margin:12px 0 5px; }
+  .modal-card input, .modal-card select{
+    width:100%; padding:9px 10px; font-family:inherit; font-size:14px;
+    border:1.5px solid var(--steel-line); border-radius:5px; background:var(--paper-2); color:var(--text);
+  }
+  .modal-actions{ display:flex; gap:8px; margin-top:20px; }
+  .modal-btn{
+    flex:1; padding:10px; border-radius:20px; border:1.5px solid var(--steel-line);
+    background:transparent; color:var(--text); font-family:inherit; font-weight:700; font-size:14px; cursor:pointer;
+  }
+  .modal-btn.primary{ background:var(--ink); color:#fff; border-color:var(--ink); }
+
+  .pdf-section{
+    max-width:900px; margin:18px auto 24px; padding:0 20px;
+  }
+  .pdf-head{
+    font-size:17px; font-weight:800; color:var(--ink);
+    padding-inline-start:10px; border-inline-start:5px solid var(--amber);
+    border-bottom:2px solid var(--ink); padding-bottom:7px; margin-bottom:6px;
+  }
+  .pdf-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:11px 6px; border-bottom:1px solid var(--steel-line);
+    text-decoration:none; color:var(--text);
+  }
+  .pdf-row:last-child{ border-bottom:none; }
+  .pdf-name{ font-size:14.5px; font-weight:500; }
+  .pdf-dl{
+    font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600;
+    background:var(--paper-2); border:1px solid var(--amber-deep); color:var(--amber-deep);
+    border-radius:20px; padding:4px 12px; white-space:nowrap; flex-shrink:0;
+  }
+
+  .empty-state{
+    text-align:center; padding:50px 20px; color:var(--text-dim);
+  }
+  .empty-state svg{ width:40px; height:40px; margin-bottom:12px; opacity:.5;}
+
+  footer{
+    max-width:900px; margin:0 auto; padding: 10px 20px 40px;
+    color:var(--text-dim); font-size:12.5px; text-align:center;
+    border-top:1px solid var(--steel-line); margin-top:10px;
+  }
+
+  .qr-toggle{
+    margin-top:12px;
+    display:inline-flex; align-items:center; gap:7px;
+    background:transparent; color:#e9c680;
+    border:1.5px dashed rgba(233,198,128,0.5);
+    border-radius:20px; padding:7px 14px;
+    font-family:inherit; font-size:13px; font-weight:600; cursor:pointer;
+  }
+  .qr-toggle:hover{ background:rgba(233,198,128,0.08); }
+  .qr-panel{
+    display:none;
+    max-width:900px; margin:16px auto 0; padding:0 20px;
+  }
+  .qr-panel.open{ display:block; }
+  .qr-card{
+    background:var(--paper-2); border:2px solid var(--ink);
+    border-radius:var(--radius);
+    padding:22px; text-align:center;
+  }
+  .qr-card #qrcodeBox{ display:inline-block; padding:10px; background:#fff; border:1px solid var(--steel-line); border-radius:4px; }
+  .qr-card h3{ margin:14px 0 4px; font-size:16px; font-weight:800; }
+  .qr-card p{ margin:0; color:var(--text-dim); font-size:13px; line-height:1.8; }
+  .qr-card .url{ margin-top:8px; font-size:11.5px; color:var(--steel); word-break:break-all; }
+  .print-btn{
+    margin-top:14px; padding:9px 18px; border-radius:20px; border:none;
+    background:var(--ink); color:#fff; font-family:inherit; font-weight:600; font-size:13px; cursor:pointer;
+  }
+  @media print{
+    header, .controls, main, footer, .qr-toggle{ display:none !important; }
+    .qr-panel{ display:block !important; max-width:100%; padding:40px; }
+    .qr-card{ border:none; }
+    .qr-card #qrcodeBox{ padding:20px; }
+    body{ background:#fff; }
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#12181f; --paper-2:#1a2129; --text:#e6e9ee; --text-dim:#93a0b0;
+      --steel-line:#2c3744; --ink:#0a1119; --ink-2:#111c29;
+    }
+    :root:not([data-theme="light"]) .controls{ border-bottom-color:#26313f; }
+    :root:not([data-theme="light"]) .search-wrap input{ border-color:#3a4a5c; }
+    :root:not([data-theme="light"]) .chip{ background:#1a2129; }
+    :root:not([data-theme="light"]) .category-head{ border-bottom-color:#26313f; }
+  }
+  :root[data-theme="dark"]{
+    --paper:#12181f; --paper-2:#1a2129; --text:#e6e9ee; --text-dim:#93a0b0;
+    --steel-line:#2c3744; --ink:#0a1119; --ink-2:#111c29;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="clock-widget" id="clockWidget">
+    <svg viewBox="0 0 100 100" width="68" height="68">
+      <defs>
+        <radialGradient id="faceGrad" cx="50%" cy="50%" r="70%">
+          <stop offset="0%" stop-color="#1b2c42"/>
+          <stop offset="100%" stop-color="#060a10"/>
+        </radialGradient>
+        <pattern id="circuitPattern" width="18" height="18" patternUnits="userSpaceOnUse">
+          <path d="M0 9 H7 M11 9 H18 M9 0 V7 M9 11 V18" stroke="#dd9a2e" stroke-width="1" opacity="0.30"/>
+          <circle cx="9" cy="9" r="1.3" fill="#dd9a2e" opacity="0.4"/>
+        </pattern>
+      </defs>
+      <circle cx="50" cy="50" r="48" fill="url(#faceGrad)" stroke="#dd9a2e" stroke-width="2"/>
+      <circle cx="50" cy="50" r="45" fill="url(#circuitPattern)"/>
+      <circle cx="50" cy="50" r="45" fill="none" stroke="#0a1119" stroke-width="0.5" opacity="0.4"/>
+      <g id="clockTicks" stroke="#e9c680" stroke-width="1.6"></g>
+      <line id="hourHand" x1="50" y1="50" x2="50" y2="29" stroke="#f1efe8" stroke-width="3.4" stroke-linecap="round"/>
+      <line id="minuteHand" x1="50" y1="50" x2="50" y2="19" stroke="#f1efe8" stroke-width="2.4" stroke-linecap="round"/>
+      <line id="secondHand" x1="50" y1="50" x2="50" y2="15" stroke="#dd9a2e" stroke-width="1.1" stroke-linecap="round"/>
+      <circle cx="50" cy="50" r="3" fill="#dd9a2e"/>
+    </svg>
+    <div class="clock-date" id="clockDate">—</div>
+    <div class="daily-quote" id="dailyQuote"></div>
+  </div>
+  <div class="header-inner">
+    <div class="brand-row">
+      <div class="brand-left">
+        <p class="eyebrow">شرکت <b>ایستا نوآوران نیرو</b> · واحد آموزش</p>
+        <h1>کتابخانه فنی</h1>
+        <p class="subtitle">فهرست کتاب‌های موجود در واحدهای مختلف شرکت</p>
+      </div>
+      <div class="stats">
+        <div class="stat"><b class="mono" id="statTitles">۰</b><span>عنوان</span></div>
+        <div class="stat"><b class="mono" id="statCopies">۰</b><span>نسخه</span></div>
+        <div class="stat"><b class="mono" id="statCats">۰</b><span>دسته</span></div>
+      </div>
+    </div>
+    <div class="notice">📚 کتاب مورد نظرتون رو پیدا کردید؟ برای درخواست و امانت گرفتن، حضوری به <b>واحد آموزش</b> مراجعه کنید.</div>
+    <button class="qr-toggle" id="qrToggle" onclick="toggleQr()">▤ بارکد ورود به لیست برای چاپ</button>
+    <button class="qr-toggle" id="adminToggle" onclick="toggleAdmin()">🔒 ورود مدیر</button>
+  </div>
+</header>
+
+<div class="qr-panel" id="qrPanel">
+  <div class="qr-card">
+    <div id="qrcodeBox"></div>
+    <h3>کتابخانه فنی — واحد آموزش</h3>
+    <p>برای دیدن فهرست کتاب‌ها، این بارکد را با دوربین گوشی اسکن کنید.</p>
+    <div class="url mono" id="qrUrl"></div>
+    <button class="print-btn" onclick="window.print()">🖨 چاپ این برگه</button>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="controls-inner">
+    <div class="search-wrap">
+      <input id="searchInput" type="text" placeholder="جستجوی نام کتاب…" autocomplete="off">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </div>
+    <div class="chips" id="chips"></div>
+    <button class="admin-btn" id="addBookBtn" onclick="openAddBookModal()" style="display:none;">➕ افزودن کتاب</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="addBookModal">
+  <div class="modal-card">
+    <h3>افزودن کتاب جدید</h3>
+    <label>نام کتاب</label>
+    <input type="text" id="newBookName" placeholder="اسم کتاب">
+    <label>دسته‌بندی</label>
+    <select id="newBookCat"></select>
+    <label>تعداد نسخه</label>
+    <input type="number" id="newBookCount" value="1" min="1">
+    <div class="modal-actions">
+      <button class="modal-btn primary" onclick="submitAddBook()">افزودن</button>
+      <button class="modal-btn" onclick="closeAddBookModal()">انصراف</button>
+    </div>
+  </div>
+</div>
+
+<main id="main"></main>
+
+<footer>
+  ثبت‌شده توسط واحد آموزش — شرکت ایستا نوآوران نیرو
+</footer>
+
+<script>
+const LIBRARY_DATA = {"categories": {"1": "تابلوسازی_راهنمای جامع و هندبوک", "2": "تاسیسات", "3": "نظام مهندسی", "4": "الکترونیک و مدارات کنترلی و تجهیزات اتوماسیون", "5": "رله و حفاظت و تجهیزات فشارقوی پست", "6": "تابلو برق(برق صنعتی)", "7": "ایمنی", "8": "درسی و دانشگاهی", "9": "زبان انگلیسی", "10": "استاندارد"}, "cat_order": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], "books": [{"sheet": "هندبوک", "row": 1, "name": "راهنمای جامع تابلوسازان برق صنعتی و تجهیزات وابسته(93-94)", "count": 1, "cat_num": 1, "desc": "", "id": "b1"}, {"sheet": "هندبوک", "row": 2, "name": "راهنمای جامع تابلوسازان برق صنعتی و تجهیزات وابسته(99-400)", "count": 2, "cat_num": 1, "desc": "", "id": "b2"}, {"sheet": "هندبوک", "row": 3, "name": "راهنمای جامع تابلوسازان برق صنعتی و تجهیزات وابسته(90)", "count": 1, "cat_num": 1, "desc": "", "id": "b3"}, {"sheet": "هندبوک", "row": 4, "name": "هندبوک اشنایدر راهنمای تاسیسات الکتریکی", "count": 2, "cat_num": 1, "desc": "", "id": "b4"}, {"sheet": "هندبوک", "row": 5, "name": "کتاب کابل (سیم و کابل ابهر)", "count": 1, "cat_num": 1, "desc": "", "id": "b5"}, {"sheet": "هندبوک", "row": 6, "name": "SOFT STARTER HAND BOOK(ABB)", "count": 1, "cat_num": 1, "desc": "", "id": "b6"}, {"sheet": "هندبوک", "row": 7, "name": "Electrical installation hand book (ABB)", "count": 1, "cat_num": 1, "desc": "", "id": "b7"}, {"sheet": "هندبوک", "row": 8, "name": "Switchgear Manual(ABB)", "count": 4, "cat_num": 1, "desc": "", "id": "b8"}, {"sheet": "هندبوک", "row": 9, "name": "Wiring manual2008 Automation & power distribation", "count": 2, "cat_num": 1, "desc": "", "id": "b9"}, {"sheet": "هندبوک", "row": 10, "name": "Application hand book ABB", "count": 1, "cat_num": 1, "desc": "", "id": "b10"}, {"sheet": "هندبوک", "row": 11, "name": "IET power & energy series 49- Electric Fuses", "count": 1, "cat_num": 1, "desc": "", "id": "b11"}, {"sheet": "تاسیسات", "row": 1, "name": "تاسیسات.بانک اطلاعات تهویه و تاسیسات کشور1", "count": 2, "cat_num": 2, "desc": "", "id": "b12"}, {"sheet": "تاسیسات", "row": 2, "name": "تاسیسات.بانک اطلاعات تهویه و تاسیسات کشور2", "count": 2, "cat_num": 2, "desc": "", "id": "b13"}, {"sheet": "تاسیسات", "row": 3, "name": "کتاب مرجع ساختمان و تاسیسات دوره ششم", "count": 1, "cat_num": 2, "desc": "", "id": "b14"}, {"sheet": "نظام مهندسی", "row": 1, "name": "مقررات ملی ساختمان مبحث دوازدهم", "count": 1, "cat_num": 3, "desc": "", "id": "b15"}, {"sheet": "نظام مهندسی", "row": 2, "name": "مقررات ملی ساختمان مبحث پانزدهم", "count": 1, "cat_num": 3, "desc": "", "id": "b16"}, {"sheet": "نظام مهندسی", "row": 3, "name": "مقررات ملی ساختمان مبحث سوم", "count": 1, "cat_num": 3, "desc": "", "id": "b17"}, {"sheet": "نظام مهندسی", "row": 4, "name": "قانون نظام مهندسی و کنترل ساختمان", "count": 1, "cat_num": 3, "desc": "", "id": "b18"}, {"sheet": "نظام مهندسی", "row": 5, "name": "مقررات ملی ساختمان (مبحث دوم)", "count": 1, "cat_num": 3, "desc": "", "id": "b19"}, {"sheet": "نظام مهندسی", "row": 6, "name": "مقررات ملی ساختمان (مبحث سوم)", "count": 1, "cat_num": 3, "desc": "", "id": "b20"}, {"sheet": "نظام مهندسی", "row": 7, "name": "مقررات ملی ساختمان (مبحث دوازدهم)", "count": 1, "cat_num": 3, "desc": "", "id": "b21"}, {"sheet": "نظام مهندسی", "row": 8, "name": "مقررات ملی ساختمان (مبحث پانزدهم)", "count": 1, "cat_num": 3, "desc": "", "id": "b22"}, {"sheet": "نظام مهندسی", "row": 9, "name": "مقررات ملی ساختمان (مبحث نوزدهم)", "count": 1, "cat_num": 3, "desc": "", "id": "b23"}, {"sheet": "نظام مهندسی", "row": 10, "name": "مقررات ملی ساختمان (مبحث بیست دوم)", "count": 1, "cat_num": 3, "desc": "", "id": "b24"}, {"sheet": "نظام مهندسی", "row": 11, "name": "آزمون های نظام مهندسی تاسیسات برقی(چاپ سوم)", "count": 1, "cat_num": 3, "desc": "", "id": "b25"}, {"sheet": "نظام مهندسی", "row": 12, "name": "آزمون های نظام مهندسی تاسیسات برقی(چاپ دوم)", "count": 1, "cat_num": 3, "desc": "", "id": "b26"}, {"sheet": "نظام مهندسی", "row": 13, "name": "برق ساختمان درجه یک", "count": 1, "cat_num": 3, "desc": "", "id": "b27"}, {"sheet": "نظام مهندسی", "row": 14, "name": "نقشه های کار عملی برق ساختمان", "count": 1, "cat_num": 3, "desc": "", "id": "b28"}, {"sheet": "نظام مهندسی", "row": 15, "name": "طرح و اجرای تاسیسات بررقی ساختمان ها", "count": 1, "cat_num": 3, "desc": "", "id": "b29"}, {"sheet": "نظام مهندسی", "row": 16, "name": "مجموعه نقشه های برق ساختمان", "count": 1, "cat_num": 3, "desc": "", "id": "b30"}, {"sheet": "نظام مهندسی", "row": 17, "name": "دستیار ناظر برق ساختمان", "count": 2, "cat_num": 3, "desc": "", "id": "b31"}, {"sheet": "نظام مهندسی", "row": 18, "name": "مجموعه سوالات فنی حرفه ای برق ساختمان", "count": 1, "cat_num": 3, "desc": "", "id": "b32"}, {"sheet": "نظام مهندسی", "row": 19, "name": "آموزش برق ساختمان به زبان ساده", "count": 1, "cat_num": 3, "desc": "", "id": "b33"}, {"sheet": "نظام مهندسی", "row": 20, "name": "راهنمای طرح و اجرای تاسیسات برقی ساختمتن ها", "count": 1, "cat_num": 3, "desc": "", "id": "b34"}, {"sheet": "الکترونیک", "row": 1, "name": "طرح و اجرای تاسیسات برقی ساختمان مبحث سیزدهم", "count": 1, "cat_num": 4, "desc": "", "id": "b35"}, {"sheet": "الکترونیک", "row": 2, "name": "جدول های", "count": 1, "cat_num": 4, "desc": "", "id": "b36"}, {"sheet": "الکترونیک", "row": 3, "name": "منبع تغذیه", "count": 1, "cat_num": 4, "desc": "", "id": "b37"}, {"sheet": "الکترونیک", "row": 4, "name": "رسم فنی", "count": 1, "cat_num": 4, "desc": "", "id": "b38"}, {"sheet": "الکترونیک", "row": 5, "name": "طراحی دیجیتال", "count": 1, "cat_num": 4, "desc": "", "id": "b39"}, {"sheet": "الکترونیک", "row": 6, "name": "آموزش برنامه نویسی PLC مدل S7-300", "count": 1, "cat_num": 4, "desc": "", "id": "b40"}, {"sheet": "الکترونیک", "row": 7, "name": "کنترل کننده های منطقی برنامه پذیر", "count": 1, "cat_num": 4, "desc": "", "id": "b41"}, {"sheet": "الکترونیک", "row": 8, "name": "میکرو کنترلر 8051", "count": 2, "cat_num": 4, "desc": "", "id": "b42"}, {"sheet": "الکترونیک", "row": 9, "name": "کتاب Linea IC & Pin Cnnector", "count": 1, "cat_num": 4, "desc": "", "id": "b43"}, {"sheet": "الکترونیک", "row": 10, "name": "کتاب المانی Band1", "count": 2, "cat_num": 4, "desc": "", "id": "b44"}, {"sheet": "الکترونیک", "row": 11, "name": "الکترونیک کاربردی", "count": 1, "cat_num": 4, "desc": "", "id": "b45"}, {"sheet": "الکترونیک", "row": 12, "name": "کاربردی عملی آی سی 555", "count": 1, "cat_num": 4, "desc": "", "id": "b46"}, {"sheet": "الکترونیک", "row": 13, "name": "Towers'International Transistor Selector", "count": 1, "cat_num": 4, "desc": "", "id": "b47"}, {"sheet": "رله و حفاظت", "row": 1, "name": "تجربیات عملی تنظیمات رله حفاظتی شبکه انتقال و فوق توزیع", "count": 1, "cat_num": 5, "desc": "", "id": "b48"}, {"sheet": "رله و حفاظت", "row": 2, "name": "تجربیات عملی درتست و راه اندازی پست انتقال و فوق توزیع", "count": 3, "cat_num": 5, "desc": "", "id": "b49"}, {"sheet": "رله و حفاظت", "row": 3, "name": "تجربیات عملی بهربرداری از ایستگاه های فشار قوی", "count": 3, "cat_num": 5, "desc": "", "id": "b50"}, {"sheet": "رله و حفاظت", "row": 4, "name": "ترانسفورماتور جلد اول", "count": 1, "cat_num": 5, "desc": "", "id": "b51"}, {"sheet": "رله و حفاظت", "row": 5, "name": "طراحی جامع پست های فشار قوی", "count": 1, "cat_num": 5, "desc": "", "id": "b52"}, {"sheet": "رله و حفاظت", "row": 6, "name": "ترانسفورمالتور جلد دوم", "count": 1, "cat_num": 5, "desc": "", "id": "b53"}, {"sheet": "رله و حفاظت", "row": 7, "name": "راهنمای تست رله های حفاظتی", "count": 2, "cat_num": 5, "desc": "", "id": "b54"}, {"sheet": "رله و حفاظت", "row": 8, "name": "رله و حفاظت و سیستم ها", "count": 1, "cat_num": 5, "desc": "", "id": "b55"}, {"sheet": "رله و حفاظت", "row": 9, "name": "حفاظت سیستم های الکتریکی", "count": 1, "cat_num": 5, "desc": "", "id": "b56"}, {"sheet": "رله و حفاظت", "row": 10, "name": "تجهیزات نیروگاه", "count": 1, "cat_num": 5, "desc": "", "id": "b57"}, {"sheet": "رله و حفاظت", "row": 11, "name": "آشنایی با نیروگاه های بادی", "count": 1, "cat_num": 5, "desc": "", "id": "b58"}, {"sheet": "رله و حفاظت", "row": 12, "name": "حفاظت باس بار", "count": 1, "cat_num": 5, "desc": "", "id": "b59"}, {"sheet": "برق صنعتی", "row": 1, "name": "طراحی و اجرای تابلوهای برق LowVoltage", "count": 1, "cat_num": 6, "desc": "", "id": "b60"}, {"sheet": "برق صنعتی", "row": 2, "name": "1500نکته برق صنعتی درجه 2", "count": 1, "cat_num": 6, "desc": "", "id": "b61"}, {"sheet": "برق صنعتی", "row": 3, "name": "تجهیزات کنترل و فرمان", "count": 2, "cat_num": 6, "desc": "", "id": "b62"}, {"sheet": "برق صنعتی", "row": 4, "name": "مجموعه مقالات تحقیقاتی صنایع تابلوسازی برق", "count": 1, "cat_num": 6, "desc": "", "id": "b63"}, {"sheet": "برق صنعتی", "row": 5, "name": "تابلو کار برق صنعتی و انتخاب قطعات طبق استاندارد جهانی", "count": 2, "cat_num": 6, "desc": "", "id": "b64"}, {"sheet": "برق صنعتی", "row": 6, "name": "نقشه های کار عملی برق صنعتی درجه 1 و 2", "count": 1, "cat_num": 6, "desc": "", "id": "b65"}, {"sheet": "برق صنعتی", "row": 7, "name": "آشنایی با لوازم فشار ضعیف زیمنس", "count": 1, "cat_num": 6, "desc": "", "id": "b66"}, {"sheet": "برق صنعتی", "row": 8, "name": "آموزش خطوط لوله و مخابرات(نقشه کشی)", "count": 1, "cat_num": 6, "desc": "", "id": "b67"}, {"sheet": "برق صنعتی", "row": 9, "name": "موتورهای الکتریکی", "count": 1, "cat_num": 6, "desc": "", "id": "b68"}, {"sheet": "برق صنعتی", "row": 10, "name": "برق صنعتی به زبان ساده", "count": 1, "cat_num": 6, "desc": "", "id": "b69"}, {"sheet": "برق صنعتی", "row": 11, "name": "مدارات کاربردی برق صنعتی درجه دو", "count": 1, "cat_num": 6, "desc": "", "id": "b70"}, {"sheet": "برق صنعتی", "row": 12, "name": "فرمان های الکتریکی", "count": 1, "cat_num": 6, "desc": "", "id": "b71"}, {"sheet": "برق صنعتی", "row": 13, "name": "کتاب جامع برق", "count": 2, "cat_num": 6, "desc": "", "id": "b72"}, {"sheet": "برق صنعتی", "row": 14, "name": "نقشه های عملی برق صنعتی", "count": 1, "cat_num": 6, "desc": "", "id": "b73"}, {"sheet": "برق صنعتی", "row": 15, "name": "مدارهای الکتریکی و طرز کار آنها", "count": 1, "cat_num": 6, "desc": "", "id": "b74"}, {"sheet": "برق صنعتی", "row": 16, "name": "نقشه کشی پیشرفته صنعتی eplan5.5", "count": 1, "cat_num": 6, "desc": "", "id": "b75"}, {"sheet": "برق صنعتی", "row": 17, "name": "آموزش سیم پیچی به زبان ساده", "count": 1, "cat_num": 6, "desc": "", "id": "b76"}, {"sheet": "ایمنی", "row": 1, "name": "ایمنی در برق و تاسیسات الکتریکی", "count": 2, "cat_num": 7, "desc": "", "id": "b77"}, {"sheet": "ایمنی", "row": 2, "name": "ایمنی در برق", "count": 1, "cat_num": 7, "desc": "", "id": "b78"}, {"sheet": "ایمنی", "row": 3, "name": "تکنولوژی جامع محیط های مستعد خطر و دستگاه های برقی ، الکترونیکی و ابزلر دقیق\" ضد انفجار\"", "count": 1, "cat_num": 7, "desc": "", "id": "b79"}, {"sheet": "دانشگاهی1", "row": 1, "name": "مبانی مهندسی فشار قوی الکتریکی", "count": 2, "cat_num": 8, "desc": "", "id": "b80"}, {"sheet": "دانشگاهی1", "row": 2, "name": "ریاضی عمومی 2", "count": 1, "cat_num": 8, "desc": "", "id": "b81"}, {"sheet": "دانشگاهی1", "row": 3, "name": "درس و حساب فنی", "count": 1, "cat_num": 8, "desc": "", "id": "b82"}, {"sheet": "دانشگاهی1", "row": 4, "name": "درس فنی", "count": 2, "cat_num": 8, "desc": "", "id": "b83"}, {"sheet": "دانشگاهی1", "row": 5, "name": "حساب فنی", "count": 1, "cat_num": 8, "desc": "", "id": "b84"}, {"sheet": "دانشگاهی1", "row": 6, "name": "رسم فنی و طراحی روشنایی", "count": 1, "cat_num": 8, "desc": "", "id": "b85"}, {"sheet": "دانشگاهی1", "row": 7, "name": "نقشه برداری", "count": 1, "cat_num": 8, "desc": "", "id": "b86"}, {"sheet": "دانشگاهی1", "row": 8, "name": "فیزیک 3 و آزمایشگاه", "count": 1, "cat_num": 8, "desc": "", "id": "b87"}, {"sheet": "دانشگاهی1", "row": 9, "name": "حساب دیفرانسیل و انتگرال و هندسه تحلیلی", "count": 1, "cat_num": 8, "desc": "", "id": "b88"}, {"sheet": "دانشگاهی1", "row": 10, "name": "سیستم های مخابراتی", "count": 1, "cat_num": 8, "desc": "", "id": "b89"}, {"sheet": "دانشگاهی1", "row": 11, "name": "تشریح مسائل فیزیک هالیدی", "count": 2, "cat_num": 8, "desc": "", "id": "b90"}, {"sheet": "دانشگاهی1", "row": 12, "name": "مدارهای الکتریکی", "count": 1, "cat_num": 8, "desc": "", "id": "b91"}, {"sheet": "دانشگاهی1", "row": 13, "name": "ماشین های الکتریکی", "count": 1, "cat_num": 8, "desc": "", "id": "b92"}, {"sheet": "دانشگاهی1", "row": 14, "name": "ریاضیات", "count": 1, "cat_num": 8, "desc": "", "id": "b93"}, {"sheet": "دانشگاهی1", "row": 15, "name": "فیزیک و آزمایشگاه", "count": 1, "cat_num": 8, "desc": "", "id": "b94"}, {"sheet": "دانشگاهی1", "row": 16, "name": "مبانی میکروپروسسورها", "count": 1, "cat_num": 8, "desc": "", "id": "b95"}, {"sheet": "دانشگاهی1", "row": 17, "name": "زبان تخصصی", "count": 1, "cat_num": 8, "desc": "", "id": "b96"}, {"sheet": "دانشگاهی1", "row": 18, "name": "ماشین های الکتریکی AC", "count": 1, "cat_num": 8, "desc": "", "id": "b97"}, {"sheet": "دانشگاهی1", "row": 19, "name": "نظریه اساسی مدارها و شبکه ها", "count": 1, "cat_num": 8, "desc": "", "id": "b98"}, {"sheet": "دانشگاهی1", "row": 20, "name": "تکنولوژی برق 4 ماشین الکتریکی AC", "count": 1, "cat_num": 8, "desc": "", "id": "b99"}, {"sheet": "دانشگاهی1", "row": 21, "name": "سیگنال ها و سیستم ها", "count": 1, "cat_num": 8, "desc": "", "id": "b100"}, {"sheet": "دانشگاهی1", "row": 22, "name": "الکترومغناطیس میدان و امواج", "count": 1, "cat_num": 8, "desc": "", "id": "b101"}, {"sheet": "دانشگاهی1", "row": 23, "name": "الکترونیک قدرت", "count": 1, "cat_num": 8, "desc": "", "id": "b102"}, {"sheet": "دانشگاهی1", "row": 24, "name": "مبانی برق", "count": 1, "cat_num": 8, "desc": "", "id": "b103"}, {"sheet": "دانشگاهی1", "row": 25, "name": "ترانزیستورهای اثر میدانی", "count": 1, "cat_num": 8, "desc": "", "id": "b104"}, {"sheet": "دانشگاهی1", "row": 26, "name": "اصول اندازه گیری الکتریکی", "count": 1, "cat_num": 8, "desc": "", "id": "b105"}, {"sheet": "دانشگاهی1", "row": 27, "name": "بررسی و طراحی سیستم های قدرت", "count": 1, "cat_num": 8, "desc": "", "id": "b106"}, {"sheet": "دانشگاهی1", "row": 28, "name": "رهیافت مسئله در الکترونیک", "count": 1, "cat_num": 8, "desc": "", "id": "b107"}, {"sheet": "دانشگاهی1", "row": 29, "name": "فیزیک", "count": 1, "cat_num": 8, "desc": "", "id": "b108"}, {"sheet": "دانشگاهی1", "row": 30, "name": "مهندسی سیستم های کنترل", "count": 1, "cat_num": 8, "desc": "", "id": "b109"}, {"sheet": "دانشگاهی2", "row": 31, "name": "تشریح مسائل فیزیک هالیدی جلد اول", "count": 1, "cat_num": 8, "desc": "", "id": "b110"}, {"sheet": "دانشگاهی2", "row": 32, "name": "کارکارگاهی", "count": 1, "cat_num": 8, "desc": "", "id": "b111"}, {"sheet": "دانشگاهی2", "row": 33, "name": "الکترونیک عمومی چهارم هنرستان", "count": 1, "cat_num": 8, "desc": "", "id": "b112"}, {"sheet": "دانشگاهی2", "row": 34, "name": "حساب فنی اول دبیرستان", "count": 1, "cat_num": 8, "desc": "", "id": "b113"}, {"sheet": "دانشگاهی2", "row": 35, "name": "رسم فنی سوم هنرستان", "count": 1, "cat_num": 8, "desc": "", "id": "b114"}, {"sheet": "دانشگاهی2", "row": 36, "name": "فیزیک جلد اول", "count": 1, "cat_num": 8, "desc": "", "id": "b115"}, {"sheet": "دانشگاهی2", "row": 37, "name": "الکترومغناطیس میدان و موج", "count": 1, "cat_num": 8, "desc": "", "id": "b116"}, {"sheet": "دانشگاهی2", "row": 38, "name": "مرجع کامل برق کاربردی", "count": 1, "cat_num": 8, "desc": "", "id": "b117"}, {"sheet": "دانشگاهی2", "row": 39, "name": "مبانی برق صنعتی درجه 2", "count": 1, "cat_num": 8, "desc": "", "id": "b118"}, {"sheet": "دانشگاهی2", "row": 40, "name": "برق صنعتی درجه 1", "count": 1, "cat_num": 8, "desc": "", "id": "b119"}, {"sheet": "دانشگاهی2", "row": 41, "name": "نقشه برداری 1", "count": 1, "cat_num": 8, "desc": "", "id": "b120"}, {"sheet": "دانشگاهی2", "row": 42, "name": "تکنولوژی جامع محیط های مستعد خطر و تجهیزات ضد انفجار", "count": 1, "cat_num": 8, "desc": "", "id": "b121"}, {"sheet": "دانشگاهی2", "row": 43, "name": "بررسی سیستم های قدرت", "count": 1, "cat_num": 8, "desc": "", "id": "b122"}, {"sheet": "دانشگاهی2", "row": 44, "name": "ماشین های الکتریکی DC", "count": 1, "cat_num": 8, "desc": "", "id": "b123"}, {"sheet": "دانشگاهی2", "row": 45, "name": "مدارهای الکتریکی 1", "count": 1, "cat_num": 8, "desc": "", "id": "b124"}, {"sheet": "دانشگاهی2", "row": 46, "name": "راهنمای کامل English For Computer Science", "count": 2, "cat_num": 8, "desc": "", "id": "b125"}, {"sheet": "دانشگاهی2", "row": 47, "name": "تاسیسات ساختمان", "count": 1, "cat_num": 8, "desc": "", "id": "b126"}, {"sheet": "دانشگاهی2", "row": 48, "name": "راهنمای سیستمهای مخابراتی", "count": 1, "cat_num": 8, "desc": "", "id": "b127"}, {"sheet": "دانشگاهی2", "row": 49, "name": "مبانی برق 2", "count": 1, "cat_num": 8, "desc": "", "id": "b128"}, {"sheet": "دانشگاهی2", "row": 50, "name": "حساب فنی دوم", "count": 1, "cat_num": 8, "desc": "", "id": "b129"}, {"sheet": "دانشگاهی2", "row": 51, "name": "حساب فنی چهارم", "count": 2, "cat_num": 8, "desc": "", "id": "b130"}, {"sheet": "دانشگاهی2", "row": 52, "name": "درس فنی دوم دبیرستان", "count": 1, "cat_num": 8, "desc": "", "id": "b131"}, {"sheet": "دانشگاهی2", "row": 53, "name": "درس فنی سوم دبیرستان", "count": 1, "cat_num": 8, "desc": "", "id": "b132"}, {"sheet": "دانشگاهی2", "row": 54, "name": "ضمیمه درس فنی سوم دبیرستان", "count": 1, "cat_num": 8, "desc": "", "id": "b133"}, {"sheet": "دانشگاهی2", "row": 55, "name": "الکترونیک عمومی سوم دبیرستان", "count": 1, "cat_num": 8, "desc": "", "id": "b134"}, {"sheet": "دانشگاهی2", "row": 56, "name": "تکنولوژی و کارگاه سیم پیچی", "count": 1, "cat_num": 8, "desc": "", "id": "b135"}, {"sheet": "دانشگاهی2", "row": 57, "name": "کارکارگاهی سوم دبیرستان", "count": 1, "cat_num": 8, "desc": "", "id": "b136"}, {"sheet": "دانشگاهی2", "row": 58, "name": "تکنولوژی کارگاهی برق اتومبیل سوم و چهارم دبیرستان", "count": 2, "cat_num": 8, "desc": "", "id": "b137"}, {"sheet": "دانشگاهی2", "row": 59, "name": "رسم فنی اول دبیرستان", "count": 1, "cat_num": 8, "desc": "", "id": "b138"}, {"sheet": "دانشگاهی2", "row": 60, "name": "ساختمان و تعمیر موتورهای جریان مستقیم", "count": 1, "cat_num": 8, "desc": "", "id": "b139"}, {"sheet": "دانشگاهی3", "row": 61, "name": "درس فنی (مبحث دیزل)", "count": 1, "cat_num": 8, "desc": "", "id": "b140"}, {"sheet": "دانشگاهی3", "row": 62, "name": "اصول مدارهای دیجیتال سال چهارم هنرستان", "count": 1, "cat_num": 8, "desc": "", "id": "b141"}, {"sheet": "دانشگاهی3", "row": 63, "name": "روشنایی و منابع نور سال چهارم هنرستان", "count": 1, "cat_num": 8, "desc": "", "id": "b142"}, {"sheet": "دانشگاهی3", "row": 64, "name": "درس فنی سال چهارم هنرستان", "count": 1, "cat_num": 8, "desc": "", "id": "b143"}, {"sheet": "دانشگاهی3", "row": 65, "name": "اصول مخابرات و ارتباطات سال چهارم هنرستان", "count": 1, "cat_num": 8, "desc": "", "id": "b144"}, {"sheet": "دانشگاهی3", "row": 66, "name": "تحلیل مدارهای الکتریکی سال سوم هنرستان", "count": 1, "cat_num": 8, "desc": "", "id": "b145"}, {"sheet": "دانشگاهی3", "row": 67, "name": "تکنولوژی کارگاهی سال سوم هنرستان", "count": 1, "cat_num": 8, "desc": "", "id": "b146"}, {"sheet": "دانشگاهی3", "row": 68, "name": "نظریه اساسی مدارها و شبکه ها", "count": 1, "cat_num": 8, "desc": "", "id": "b147"}, {"sheet": "دانشگاهی3", "row": 69, "name": "ماشین های الکتریکی", "count": 1, "cat_num": 8, "desc": "", "id": "b148"}, {"sheet": "دانشگاهی3", "row": 70, "name": "فیزیک - مکانیک", "count": 1, "cat_num": 8, "desc": "", "id": "b149"}, {"sheet": "دانشگاهی3", "row": 71, "name": "عیب یابی و تعمیر ژنراتورها", "count": 1, "cat_num": 8, "desc": "", "id": "b150"}, {"sheet": "دانشگاهی3", "row": 72, "name": "مبانی برق", "count": 1, "cat_num": 8, "desc": "", "id": "b151"}, {"sheet": "دانشگاهی3", "row": 73, "name": "الکترونیک کاربردی", "count": 1, "cat_num": 8, "desc": "", "id": "b152"}, {"sheet": "دانشگاهی3", "row": 74, "name": "فیزیک دانشگاهی", "count": 1, "cat_num": 8, "desc": "", "id": "b153"}, {"sheet": "دانشگاهی3", "row": 75, "name": "کارگاه سیم پیچی", "count": 1, "cat_num": 8, "desc": "", "id": "b154"}, {"sheet": "دانشگاهی3", "row": 76, "name": "مدل سازی ریاضی", "count": 1, "cat_num": 8, "desc": "", "id": "b155"}, {"sheet": "دانشگاهی3", "row": 77, "name": "کارگاه و آزمایشگاه الکترونیک سال سوم هنرستان", "count": 1, "cat_num": 8, "desc": "", "id": "b156"}, {"sheet": "دانشگاهی3", "row": 78, "name": "کنترلها و مدارهای الکتریکی", "count": 1, "cat_num": 8, "desc": "", "id": "b157"}, {"sheet": "دانشگاهی3", "row": 79, "name": "الکترونیک صنعتی", "count": 1, "cat_num": 8, "desc": "", "id": "b158"}, {"sheet": "دانشگاهی3", "row": 80, "name": "طراحی الکترونیک", "count": 1, "cat_num": 8, "desc": "", "id": "b159"}, {"sheet": "دانشگاهی3", "row": 81, "name": "مبانی الکترونیک", "count": 1, "cat_num": 8, "desc": "", "id": "b160"}, {"sheet": "دانشگاهی3", "row": 82, "name": "درس فنی سال سوم هنرستان", "count": 1, "cat_num": 8, "desc": "", "id": "b161"}, {"sheet": "دانشگاهی3", "row": 83, "name": "کارگاه و آزمایشگاه", "count": 1, "cat_num": 8, "desc": "", "id": "b162"}, {"sheet": "دانشگاهی3", "row": 84, "name": "مبانی الکترونیک", "count": 1, "cat_num": 8, "desc": "", "id": "b163"}, {"sheet": "دانشگاهی3", "row": 85, "name": "تحلیل و طراحی مدارهای الکترونیک", "count": 1, "cat_num": 8, "desc": "", "id": "b164"}, {"sheet": "دانشگاهی3", "row": 86, "name": "شبکه های هوشمند_اصول و فناوری های شبکه های برق", "count": 1, "cat_num": 8, "desc": "", "id": "b165"}, {"sheet": "دانشگاهی3", "row": 87, "name": "اندازه گیری هم زمان فازورها در شبکه قدرت و کاربردهای آن", "count": 2, "cat_num": 8, "desc": "", "id": "b166"}, {"sheet": "دانشگاهی3", "row": 88, "name": "مباحث کاربردی کیفیت توان در شبکه های توزیع برق", "count": 1, "cat_num": 8, "desc": "", "id": "b167"}, {"sheet": "دانشگاهی3", "row": 89, "name": "راویان خدمت", "count": 2, "cat_num": 8, "desc": "", "id": "b168"}, {"sheet": "دانشگاهی3", "row": 90, "name": "تنهایی یک دونده دوی استقامت", "count": 1, "cat_num": 8, "desc": "", "id": "b169"}, {"sheet": "دانشگاهی4", "row": 91, "name": "راهکاری نوین درکاهش مقاومت زمین", "count": 1, "cat_num": 8, "desc": "", "id": "b170"}, {"sheet": "دانشگاهی4", "row": 92, "name": "حفاظت دیجیتال سیستم های انرژی", "count": 1, "cat_num": 8, "desc": "", "id": "b171"}, {"sheet": "دانشگاهی4", "row": 93, "name": "راهبردهای تحلیل علمی کلان داده در شبکه هوشمند", "count": 1, "cat_num": 8, "desc": "", "id": "b172"}, {"sheet": "دانشگاهی4", "row": 94, "name": "نیروگاه های بادی مدل سازی و کنترل", "count": 1, "cat_num": 8, "desc": "", "id": "b173"}, {"sheet": "دانشگاهی4", "row": 95, "name": "مدیریت دارایی فیزیکی", "count": 1, "cat_num": 8, "desc": "", "id": "b174"}, {"sheet": "دانشگاهی4", "row": 96, "name": "نظریه گروهها", "count": 1, "cat_num": 8, "desc": "", "id": "b175"}, {"sheet": "دانشگاهی4", "row": 97, "name": "نظریه گراف", "count": 1, "cat_num": 8, "desc": "", "id": "b176"}, {"sheet": "دانشگاهی4", "row": 98, "name": "حل مسائل آنالیز ریاضی", "count": 1, "cat_num": 8, "desc": "", "id": "b177"}, {"sheet": "دانشگاهی4", "row": 99, "name": "درآمدی به منطق جدید", "count": 1, "cat_num": 8, "desc": "", "id": "b178"}, {"sheet": "دانشگاهی4", "row": 100, "name": "فیزیک اُهانیان", "count": 1, "cat_num": 8, "desc": "", "id": "b179"}, {"sheet": "دانشگاهی4", "row": 101, "name": "حساب دیفرانسیل و انتگرال و هندسه تحلیل", "count": 1, "cat_num": 8, "desc": "", "id": "b180"}, {"sheet": "زبان انگلیسی", "row": 1, "name": "فرهنگ لغت برق", "count": 1, "cat_num": 9, "desc": "", "id": "b181"}, {"sheet": "زبان انگلیسی", "row": 2, "name": "True to life starter", "count": 1, "cat_num": 9, "desc": "", "id": "b182"}, {"sheet": "زبان انگلیسی", "row": 3, "name": "True to life dase book starter", "count": 1, "cat_num": 9, "desc": "", "id": "b183"}, {"sheet": "زبان انگلیسی", "row": 4, "name": "True to life Elementry", "count": 3, "cat_num": 9, "desc": "", "id": "b184"}, {"sheet": "زبان انگلیسی", "row": 5, "name": "Tactics For Listening", "count": 1, "cat_num": 9, "desc": "", "id": "b185"}, {"sheet": "زبان انگلیسی", "row": 6, "name": "راهنمای اینگلیسی برای دانشجویان برق و الترونیک کنترل و مخابرات", "count": 1, "cat_num": 9, "desc": "", "id": "b186"}, {"sheet": "زبان انگلیسی", "row": 7, "name": "new interchange", "count": 1, "cat_num": 9, "desc": "", "id": "b187"}, {"sheet": "زبان انگلیسی", "row": 8, "name": "Drive into danger", "count": 1, "cat_num": 9, "desc": "", "id": "b188"}, {"sheet": "زبان انگلیسی", "row": 9, "name": "Special English for Computer students", "count": 1, "cat_num": 9, "desc": "", "id": "b189"}, {"sheet": "زبان انگلیسی", "row": 10, "name": "فرهنگ جامع و کامل الکترونیک _ برق _ ارتباطات(انگلیسی-فارسی)", "count": 1, "cat_num": 9, "desc": "", "id": "b190"}, {"sheet": "زبان انگلیسی", "row": 11, "name": "انگلیسی برای دانشجویان رشته های برق،الکترونیک،کنترل و مخابرات", "count": 1, "cat_num": 9, "desc": "", "id": "b191"}, {"sheet": "زبان انگلیسی", "row": 12, "name": "انگلیسی عمومی", "count": 1, "cat_num": 9, "desc": "", "id": "b192"}, {"sheet": "زبان انگلیسی", "row": 13, "name": "زبان انگلیسی(مجموعه پرسشها و پاسخ های تشریحی درس)", "count": 1, "cat_num": 9, "desc": "", "id": "b193"}, {"sheet": "استاندارد", "row": 1, "name": "مشخصات فنی عمومی و اجرایی خطوط توزیع برق هوایی و کابلی فشار متوسط و فشار ضعیف", "count": 1, "cat_num": 10, "desc": "", "id": "b194"}, {"sheet": "استاندارد", "row": 2, "name": "استاندارد تابلوهای مورد استفاده در شبکه توزیع", "count": 1, "cat_num": 10, "desc": "", "id": "b195"}]};
+
+const faDigits = ['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
+function toFa(n){ return String(n).replace(/[0-9]/g, d => faDigits[d]); }
+function toEn(s){
+  const map = {'۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9'};
+  return String(s).replace(/[۰-۹]/g, d => map[d]);
+}
+function normalizeFa(s){
+  return String(s)
+    .replace(/\u064A/g, '\u06CC')
+    .replace(/\u0643/g, '\u06A9')
+    .replace(/[\u200C\u200F\u200E]/g, ' ')
+    .replace(/[۰-۹]/g, d => '0123456789'['۰۱۲۳۴۵۶۷۸۹'.indexOf(d)])
+    .replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)])
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+const ADMIN_PASSWORD = "1400";
+
+let activeCat = 'all';
+let query = '';
+let bookStatus = {};   // { id: {borrowed: n, note: "..."} }
+let extraBooks = [];   // books added later by admin
+let overrides = {};    // { id: {count: n} or {deleted: true} }
+let adminMode = sessionStorage.getItem('adminMode') === '1';
+let nextExtraId = 1;
+
+function allBooks(){
+  const base = LIBRARY_DATA.books.concat(extraBooks);
+  return base
+    .filter(b => !(overrides[b.id] && overrides[b.id].deleted))
+    .map(b => {
+      const ov = overrides[b.id];
+      if(ov && typeof ov.count === 'number'){
+        return Object.assign({}, b, {count: ov.count});
+      }
+      return b;
+    });
+}
+
+// ===== data loading (server API with localStorage fallback) =====
+async function tryFetchJson(url){
+  try{
+    const res = await fetch(url, {cache:'no-store'});
+    const text = await res.text();
+    const data = JSON.parse(text);
+    return data;
+  }catch(e){
+    return undefined; // signals: no working API here
+  }
+}
+
+async function loadStatus(){
+  const data = await tryFetchJson('/api/status');
+  if(data && typeof data === 'object'){
+    bookStatus = data;
+  } else {
+    try{ bookStatus = JSON.parse(localStorage.getItem('bookStatus') || '{}'); }
+    catch(e2){ bookStatus = {}; }
+  }
+}
+
+async function loadExtraBooks(){
+  const data = await tryFetchJson('/api/extrabooks');
+  if(Array.isArray(data)){
+    extraBooks = data;
+  } else {
+    try{ extraBooks = JSON.parse(localStorage.getItem('extraBooks') || '[]'); }
+    catch(e2){ extraBooks = []; }
+  }
+  const nums = extraBooks.map(b => parseInt((b.id||'x0').replace('x',''),10) || 0);
+  nextExtraId = (nums.length ? Math.max(...nums) : 0) + 1;
+}
+
+async function loadOverrides(){
+  const data = await tryFetchJson('/api/overrides');
+  if(data && typeof data === 'object' && !Array.isArray(data)){
+    overrides = data;
+  } else {
+    try{ overrides = JSON.parse(localStorage.getItem('overrides') || '{}'); }
+    catch(e2){ overrides = {}; }
+  }
+}
+
+async function callApi(path, params){
+  const qs = Object.entries(params).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+  const data = await tryFetchJson(`${path}?${qs}`);
+  return data; // undefined if no live API
+}
+
+async function setStatus(id, borrowedCount, note, date){
+  const result = await callApi('/api/toggle', {id, count: borrowedCount, note, date});
+  if(result === undefined){
+    let local = {};
+    try{ local = JSON.parse(localStorage.getItem('bookStatus') || '{}'); }catch(e2){}
+    if(borrowedCount <= 0) delete local[id];
+    else local[id] = {borrowed: borrowedCount, note, date};
+    localStorage.setItem('bookStatus', JSON.stringify(local));
+  }
+}
+
+async function addBookApi(name, catNum, count){
+  const result = await callApi('/api/addbook', {name, cat: catNum, count});
+  if(result === undefined){
+    const newBook = { id: `x${nextExtraId++}`, name, cat_num: catNum, count, sheet:'', row:0, desc:'' };
+    extraBooks.push(newBook);
+    localStorage.setItem('extraBooks', JSON.stringify(extraBooks));
+  }
+}
+
+// ===== admin mode =====
+function toggleAdmin(){
+  if(adminMode){
+    adminMode = false;
+    sessionStorage.removeItem('adminMode');
+    updateAdminUI();
+    render();
+    return;
+  }
+  const pw = prompt('رمز مسئول واحد آموزش رو وارد کنید:');
+  if(pw === null) return;
+  if(pw === ADMIN_PASSWORD){
+    adminMode = true;
+    sessionStorage.setItem('adminMode', '1');
+    updateAdminUI();
+    render();
+  } else {
+    alert('رمز اشتباهه.');
+  }
+}
+
+function updateAdminUI(){
+  const btn = document.getElementById('adminToggle');
+  const addBtn = document.getElementById('addBookBtn');
+  if(adminMode){
+    btn.textContent = '🔓 خروج از حالت مدیر';
+    addBtn.style.display = 'inline-flex';
+  } else {
+    btn.textContent = '🔒 ورود مدیر';
+    addBtn.style.display = 'none';
+  }
+}
+
+// ===== borrow toggle =====
+async function toggleBook(id, book){
+  if(!adminMode){
+    alert('فقط مسئول واحد آموزش می‌تونه وضعیت امانت رو تغییر بده.');
+    return;
+  }
+  const st = bookStatus[id];
+  const currentBorrowed = st ? (st.borrowed || 0) : 0;
+  const total = book.count;
+
+  const input = prompt(`چند نسخه از «${book.name}» الان دست کسیه؟ (از ${toFa(total)} نسخه)`, String(currentBorrowed));
+  if(input === null) return;
+  let n = parseInt(toEn(input.trim()), 10);
+  if(isNaN(n)) { alert('باید یه عدد وارد کنید.'); return; }
+  if(n < 0) n = 0;
+  if(n > total) n = total;
+
+  let note = st ? (st.note || '') : '';
+  if(n > 0){
+    const noteInput = prompt('نام شخصی که کتاب را به امانت برده (اختیاری):', note);
+    note = noteInput === null ? note : noteInput;
+  } else {
+    note = '';
+  }
+
+  let date = st ? (st.date || '') : '';
+  if(n > 0 && currentBorrowed === 0){
+    const now = new Date();
+    const [jy, jm, jd] = toJalali(now.getFullYear(), now.getMonth()+1, now.getDate());
+    date = `${toFa(jd)} ${persianMonths[jm-1]} ${toFa(jy)}`;
+  } else if(n <= 0){
+    date = '';
+  }
+
+  await setStatus(id, n, note, date);
+  await loadStatus();
+  render();
+}
+
+// ===== edit / delete book (admin only) =====
+async function editBookCount(id, currentCount, name){
+  if(!adminMode) return;
+  const input = prompt(`تعداد کل نسخه‌های «${name}» رو وارد کنید:`, String(currentCount));
+  if(input === null) return;
+  let n = parseInt(toEn(input.trim()), 10);
+  if(isNaN(n) || n < 0){ alert('یه عدد معتبر وارد کنید.'); return; }
+
+  const result = await callApi('/api/editbook', {id, count: n});
+  if(result === undefined){
+    overrides[id] = Object.assign({}, overrides[id], {count: n});
+    localStorage.setItem('overrides', JSON.stringify(overrides));
+  } else {
+    await loadOverrides();
+  }
+  renderChips();
+  render();
+}
+
+async function deleteBook(id, name){
+  if(!adminMode) return;
+  if(!confirm(`مطمئنید می‌خواید «${name}» رو کامل از لیست حذف کنید؟ این کار قابل بازگشت نیست.`)) return;
+
+  const result = await callApi('/api/deletebook', {id});
+  if(result === undefined){
+    overrides[id] = Object.assign({}, overrides[id], {deleted: true});
+    localStorage.setItem('overrides', JSON.stringify(overrides));
+  } else {
+    await loadOverrides();
+  }
+  renderChips();
+  render();
+}
+
+// ===== add book modal =====
+function openAddBookModal(){
+  if(!adminMode) return;
+  const sel = document.getElementById('newBookCat');
+  sel.innerHTML = '';
+  LIBRARY_DATA.cat_order.forEach(catNum => {
+    const opt = document.createElement('option');
+    opt.value = catNum;
+    opt.textContent = LIBRARY_DATA.categories[String(catNum)];
+    sel.appendChild(opt);
+  });
+  document.getElementById('newBookName').value = '';
+  document.getElementById('newBookCount').value = '1';
+  document.getElementById('addBookModal').classList.add('open');
+}
+function closeAddBookModal(){
+  document.getElementById('addBookModal').classList.remove('open');
+}
+async function submitAddBook(){
+  const name = document.getElementById('newBookName').value.trim();
+  const catNum = parseInt(document.getElementById('newBookCat').value, 10);
+  let count = parseInt(toEn(document.getElementById('newBookCount').value), 10);
+  if(!name){ alert('اسم کتاب رو وارد کنید.'); return; }
+  if(isNaN(count) || count < 1) count = 1;
+
+  await addBookApi(name, catNum, count);
+  await loadExtraBooks();
+  closeAddBookModal();
+  renderChips();
+  render();
+}
+
+// ===== render =====
+function render(){
+  const main = document.getElementById('main');
+  const q = query.trim();
+  main.innerHTML = '';
+
+  const books_all = allBooks();
+  let anyShown = false;
+
+  if(activeCat === 'pdfs'){
+    const files = q ? pdfFiles.filter(f => normalizeFa(f).includes(normalizeFa(q))) : pdfFiles;
+    if(files.length === 0){
+      main.innerHTML = `<div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <div>جزوه‌ای با این مشخصات پیدا نشد.</div>
+      </div>`;
+    } else {
+      const block = document.createElement('div');
+      block.className = 'category-block';
+      const head = document.createElement('div');
+      head.className = 'category-head';
+      head.innerHTML = `<h2>📄 جزوه‌های آموزشی</h2><div class="count mono">${toFa(files.length)} فایل</div>`;
+      block.appendChild(head);
+      const list = document.createElement('div');
+      list.innerHTML = files.map(f => `
+        <a class="pdf-row" href="/files/${encodeURIComponent(f)}" target="_blank" rel="noopener">
+          <span class="pdf-name">📄 ${escapeHtml(f.replace(/\.pdf$/i,''))}</span>
+          <span class="pdf-dl">دانلود ⬇</span>
+        </a>
+      `).join('');
+      block.appendChild(list);
+      main.appendChild(block);
+    }
+    document.getElementById('statTitles').textContent = toFa(books_all.length);
+    document.getElementById('statCopies').textContent = toFa(books_all.reduce((s,b)=>s+b.count,0));
+    document.getElementById('statCats').textContent = toFa(LIBRARY_DATA.cat_order.length);
+    return;
+  }
+
+  LIBRARY_DATA.cat_order.forEach(catNum => {
+    if(activeCat !== 'all' && String(catNum) !== String(activeCat)) return;
+    const catName = LIBRARY_DATA.categories[String(catNum)];
+    let books = books_all.filter(b => b.cat_num === catNum);
+    if(q){
+      books = books.filter(b => normalizeFa(b.name).includes(normalizeFa(q)));
+    }
+    if(books.length === 0) return;
+
+    anyShown = true;
+    const block = document.createElement('div');
+    block.className = 'category-block';
+
+    const head = document.createElement('div');
+    head.className = 'category-head';
+    head.innerHTML = `<h2>${catName}</h2><div class="count mono">${toFa(books.length)} عنوان</div>`;
+    block.appendChild(head);
+
+    books.forEach((b, i) => {
+      const st = bookStatus[b.id];
+      const borrowed = st ? (st.borrowed || 0) : 0;
+      const available = b.count - borrowed;
+      let badgeClass = '';
+      let badgeText = '';
+      if(borrowed <= 0){
+        badgeText = `${toFa(b.count)} نسخه`;
+      } else if(borrowed < b.count){
+        badgeClass = 'partial';
+        badgeText = `🔻 ${toFa(available)} از ${toFa(b.count)} موجود`;
+      } else {
+        badgeClass = 'borrowed';
+        badgeText = `🔴 امانت`;
+      }
+
+      const row = document.createElement('div');
+      row.className = 'book-row';
+      row.innerHTML = `
+        <div class="book-idx">${toFa(i+1)}</div>
+        <div>
+          <div class="book-name">${escapeHtml(b.name)}</div>
+          ${b.desc ? `<div class="book-desc">${escapeHtml(b.desc)}</div>` : ''}
+          ${borrowed > 0 && st ? `<div class="book-borrower">🔴 ${st.note ? `امانت نزد: ${escapeHtml(st.note)}` : 'امانت داده شده'}${st.date ? ` — از ${escapeHtml(st.date)}` : ''}</div>` : ''}
+        </div>
+        <div class="book-actions">
+          <div class="book-count ${badgeClass} ${adminMode ? 'is-admin' : ''}">${badgeText}</div>
+          ${adminMode ? `<div class="book-admin-actions">
+            <button class="icon-btn edit-book-btn" title="ویرایش تعداد">✏️</button>
+            <button class="icon-btn danger delete-book-btn" title="حذف کتاب">🗑</button>
+          </div>` : ''}
+        </div>
+      `;
+      row.querySelector('.book-count').addEventListener('click', () => toggleBook(b.id, b));
+      const editBtn = row.querySelector('.edit-book-btn');
+      if(editBtn) editBtn.addEventListener('click', () => editBookCount(b.id, b.count, b.name));
+      const delBtn = row.querySelector('.delete-book-btn');
+      if(delBtn) delBtn.addEventListener('click', () => deleteBook(b.id, b.name));
+      block.appendChild(row);
+    });
+
+    main.appendChild(block);
+  });
+
+  if(!anyShown){
+    main.innerHTML = `<div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <div>کتابی با این مشخصات پیدا نشد.</div>
+    </div>`;
+  }
+
+  document.getElementById('statTitles').textContent = toFa(books_all.length);
+  document.getElementById('statCopies').textContent = toFa(books_all.reduce((s,b)=>s+b.count,0));
+  document.getElementById('statCats').textContent = toFa(LIBRARY_DATA.cat_order.length);
+}
+
+function escapeHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function renderChips(){
+  const chips = document.getElementById('chips');
+  chips.innerHTML = '';
+  const books_all = allBooks();
+  const totalBooks = books_all.length;
+
+  const allChip = document.createElement('button');
+  allChip.className = 'chip' + (activeCat === 'all' ? ' active' : '');
+  allChip.innerHTML = `همه <span class="n mono">${toFa(totalBooks)}</span>`;
+  allChip.onclick = () => { activeCat = 'all'; renderChips(); render(); };
+  chips.appendChild(allChip);
+
+  if(pdfFiles.length > 0){
+    const pdfChip = document.createElement('button');
+    pdfChip.className = 'chip' + (activeCat === 'pdfs' ? ' active' : '');
+    pdfChip.innerHTML = `📄 جزوه‌ها <span class="n mono">${toFa(pdfFiles.length)}</span>`;
+    pdfChip.onclick = () => { activeCat = 'pdfs'; renderChips(); render(); };
+    chips.appendChild(pdfChip);
+  }
+
+  LIBRARY_DATA.cat_order.forEach(catNum => {
+    const count = books_all.filter(b => b.cat_num === catNum).length;
+    const chip = document.createElement('button');
+    chip.className = 'chip' + (String(activeCat) === String(catNum) ? ' active' : '');
+    chip.innerHTML = `${LIBRARY_DATA.categories[String(catNum)]} <span class="n mono">${toFa(count)}</span>`;
+    chip.onclick = () => { activeCat = catNum; renderChips(); render(); };
+    chips.appendChild(chip);
+  });
+}
+
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  query = e.target.value;
+  render();
+});
+
+// ===== PDF handouts =====
+let pdfFiles = [];
+async function loadPdfList(){
+  const data = await tryFetchJson('/api/pdfs');
+  pdfFiles = Array.isArray(data) ? data : [];
+  renderChips();
+  if(activeCat === 'pdfs') render();
+}
+
+updateAdminUI();
+renderChips();
+(async function init(){
+  await loadStatus();
+  await loadExtraBooks();
+  await loadOverrides();
+  renderChips();
+  render();
+  await loadPdfList();
+})();
+
+// ===== analog clock + Jalali date =====
+const persianMonths = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+
+function toJalali(gy, gm, gd){
+  const g_d_m = [0,31,59,90,120,151,181,212,243,273,304,334];
+  let jy = (gy <= 1600) ? 0 : 979;
+  gy -= (gy <= 1600) ? 621 : 1600;
+  const gy2 = (gm > 2) ? (gy + 1) : gy;
+  let days = (365*gy) + Math.floor((gy2+3)/4) - Math.floor((gy2+99)/100) + Math.floor((gy2+399)/400) - 80 + gd + g_d_m[gm-1];
+  jy += 33 * Math.floor(days/12053);
+  days %= 12053;
+  jy += 4 * Math.floor(days/1461);
+  days %= 1461;
+  if (days > 365){
+    jy += Math.floor((days-1)/365);
+    days = (days-1) % 365;
+  }
+  let jm, jd;
+  if (days < 186){
+    jm = 1 + Math.floor(days/31);
+    jd = 1 + (days % 31);
+  } else {
+    jm = 7 + Math.floor((days-186)/30);
+    jd = 1 + ((days-186) % 30);
+  }
+  return [jy, jm, jd];
+}
+
+(function buildClockTicks(){
+  const g = document.getElementById('clockTicks');
+  const svgns = 'http://www.w3.org/2000/svg';
+  for(let i = 0; i < 12; i++){
+    const angle = i * 30;
+    const isMajor = (i % 3 === 0);
+    const line = document.createElementNS(svgns, 'line');
+    line.setAttribute('x1', '50');
+    line.setAttribute('y1', isMajor ? '6' : '8');
+    line.setAttribute('x2', '50');
+    line.setAttribute('y2', isMajor ? '13' : '12');
+    line.setAttribute('transform', `rotate(${angle} 50 50)`);
+    line.setAttribute('stroke-width', isMajor ? '2.2' : '1.2');
+    g.appendChild(line);
+  }
+})();
+
+function updateClock(){
+  const now = new Date();
+  const h = now.getHours() % 12;
+  const m = now.getMinutes();
+  const s = now.getSeconds();
+  const hourDeg = (h + m/60) * 30;
+  const minDeg = (m + s/60) * 6;
+  const secDeg = s * 6;
+  document.getElementById('hourHand').setAttribute('transform', `rotate(${hourDeg} 50 50)`);
+  document.getElementById('minuteHand').setAttribute('transform', `rotate(${minDeg} 50 50)`);
+  document.getElementById('secondHand').setAttribute('transform', `rotate(${secDeg} 50 50)`);
+
+  const [jy, jm, jd] = toJalali(now.getFullYear(), now.getMonth()+1, now.getDate());
+  document.getElementById('clockDate').textContent = `${toFa(jd)} ${persianMonths[jm-1]} ${toFa(jy)}`;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+// ===== QR code =====
+const pageUrl = window.location.href;
+document.getElementById('qrUrl').textContent = pageUrl;
+let qrBuilt = false;
+function buildQr(){
+  if(qrBuilt) return;
+  qrBuilt = true;
+  try{
+    new QRCode(document.getElementById('qrcodeBox'), {
+      text: pageUrl,
+      width: 200,
+      height: 200,
+      colorDark: '#101c2c',
+      colorLight: '#ffffff'
+    });
+  }catch(e){ console.error('QR generation failed', e); }
+}
+function toggleQr(){
+  const panel = document.getElementById('qrPanel');
+  panel.classList.toggle('open');
+  if(panel.classList.contains('open')) buildQr();
+}
+
+</script>
+</body>
+</html>

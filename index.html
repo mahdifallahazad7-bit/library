@@ -878,6 +878,38 @@ function toJalali(gy, gm, gd){
   return [jy, jm, jd];
 }
 
+const dailyQuotes = [
+  'هر کتابی که می‌خوانی، یک ابزار تازه به جعبه‌ابزار ذهنت اضافه می‌کند.',
+  'یادگیری امروز، سرعت کار فرداست.',
+  'کسی که می‌پرسد، یک قدم جلوتر از کسی است که فرض می‌کند.',
+  'دانش فنی که به کار گرفته نشود، خیلی زود کهنه می‌شود؛ همین امروز از آن استفاده کن.',
+  'هر مشکل فنی، یک درس رایگان است که فقط لباس دردسر پوشیده.',
+  'بهترین سرمایه‌گذاری یک تیم، ساعت‌هایی است که صرف یادگیری هم می‌کند.',
+  'دقت امروز، تعمیر کمتر فرداست.',
+  'هیچ‌کس با دانستن همه‌چیز شروع نکرد؛ با پرسیدن شروع کرد.',
+  'یک صفحه مطالعه‌ی امروز، از ده ساعت اشتباه فردا جلوگیری می‌کند.',
+  'تجربه بدون ثبت‌شدن، به مرور فراموش می‌شود؛ یادداشت کن.',
+  'بهترین متخصص کسی نیست که همه‌چیز را می‌داند، کسی است که می‌داند کجا دنبالش بگردد.',
+  'هر روز کمی بهتر از دیروز، یعنی پیشرفت واقعی.',
+  'ابزار خوب دست کسی که بلد نیست، فقط یک وزنه‌ی اضافه است؛ یاد بگیر.',
+  'سؤال پرسیدن نشانه‌ی ضعف نیست، نشانه‌ی مسئولیت‌پذیریست.',
+  'کیفیت کار، حاصل عادت است نه شانس.',
+  'وقتی ندانسته‌ای را قبول کنی، نیمی از راه یادگیری را رفته‌ای.',
+  'استانداردها را جدی بگیر؛ همان‌ها جان و مال آدم‌ها را نگه می‌دارند.',
+  'کسی که به دیگران آموزش می‌دهد، خودش دوباره یاد می‌گیرد.',
+  'هر روز یک قدم کوچک، بعد از یک سال یک مسیر بزرگ می‌شود.',
+  'صبر در یادگیری یک مهارت فنی، از عجله در اجرای آن باارزش‌تر است.'
+];
+
+function updateDailyQuote(now){
+  const start = new Date(now.getFullYear(), 0, 0);
+  const diff = now - start;
+  const dayOfYear = Math.floor(diff / 86400000);
+  const q = dailyQuotes[dayOfYear % dailyQuotes.length];
+  const el = document.getElementById('dailyQuote');
+  if(el) el.textContent = q;
+}
+
 (function buildClockTicks(){
   const g = document.getElementById('clockTicks');
   const svgns = 'http://www.w3.org/2000/svg';
@@ -909,6 +941,7 @@ function updateClock(){
 
   const [jy, jm, jd] = toJalali(now.getFullYear(), now.getMonth()+1, now.getDate());
   document.getElementById('clockDate').textContent = `${toFa(jd)} ${persianMonths[jm-1]} ${toFa(jy)}`;
+  updateDailyQuote(now);
 }
 updateClock();
 setInterval(updateClock, 1000);

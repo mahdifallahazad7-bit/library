@@ -396,7 +396,7 @@
 <div class="controls">
   <div class="controls-inner">
     <div class="search-wrap">
-      <input id="searchInput" type="text" placeholder="جستجوی نام کتاب…" autocomplete="off">
+      <input id="searchInput" type="text" placeholder="جستجوی کتاب یا جزوه…" autocomplete="off">
       <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     </div>
     <div class="chips" id="chips"></div>
@@ -679,6 +679,77 @@ async function submitAddBook(){
 }
 
 // ===== render =====
+function renderPdfBlock(files, showCount){
+  const block = document.createElement('div');
+  block.className = 'category-block';
+  const head = document.createElement('div');
+  head.className = 'category-head';
+  head.innerHTML = `<h2>📄 جزوه‌های آموزشی</h2><div class="count mono">${toFa(showCount)} فایل</div>`;
+  block.appendChild(head);
+  const list = document.createElement('div');
+  list.innerHTML = files.map(f => `
+    <a class="pdf-row" href="${f.url}" download target="_blank" rel="noopener">
+      <span class="pdf-name">📄 ${escapeHtml(f.name.replace(/\.pdf$/i,''))}</span>
+      <span class="pdf-dl">دانلود ⬇</span>
+    </a>
+  `).join('');
+  block.appendChild(list);
+  return block;
+}
+
+function renderBookBlock(catName, books){
+  const block = document.createElement('div');
+  block.className = 'category-block';
+
+  const head = document.createElement('div');
+  head.className = 'category-head';
+  head.innerHTML = `<h2>${catName}</h2><div class="count mono">${toFa(books.length)} عنوان</div>`;
+  block.appendChild(head);
+
+  books.forEach((b, i) => {
+    const st = bookStatus[b.id];
+    const borrowed = st ? (st.borrowed || 0) : 0;
+    const available = b.count - borrowed;
+    let badgeClass = '';
+    let badgeText = '';
+    if(borrowed <= 0){
+      badgeText = `${toFa(b.count)} نسخه`;
+    } else if(borrowed < b.count){
+      badgeClass = 'partial';
+      badgeText = `🔻 ${toFa(available)} از ${toFa(b.count)} موجود`;
+    } else {
+      badgeClass = 'borrowed';
+      badgeText = `🔴 امانت`;
+    }
+
+    const row = document.createElement('div');
+    row.className = 'book-row';
+    row.innerHTML = `
+      <div class="book-idx">${toFa(i+1)}</div>
+      <div>
+        <div class="book-name">${escapeHtml(b.name)}</div>
+        ${b.desc ? `<div class="book-desc">${escapeHtml(b.desc)}</div>` : ''}
+        ${borrowed > 0 && st ? `<div class="book-borrower">🔴 ${st.note ? `امانت نزد: ${escapeHtml(st.note)}` : 'امانت داده شده'}${st.date ? ` — از ${escapeHtml(st.date)}` : ''}</div>` : ''}
+      </div>
+      <div class="book-actions">
+        <div class="book-count ${badgeClass} ${adminMode ? 'is-admin' : ''}">${badgeText}</div>
+        ${adminMode ? `<div class="book-admin-actions">
+          <button class="icon-btn edit-book-btn" title="ویرایش تعداد">✏️</button>
+          <button class="icon-btn danger delete-book-btn" title="حذف کتاب">🗑</button>
+        </div>` : ''}
+      </div>
+    `;
+    row.querySelector('.book-count').addEventListener('click', () => toggleBook(b.id, b));
+    const editBtn = row.querySelector('.edit-book-btn');
+    if(editBtn) editBtn.addEventListener('click', () => editBookCount(b.id, b.count, b.name));
+    const delBtn = row.querySelector('.delete-book-btn');
+    if(delBtn) delBtn.addEventListener('click', () => deleteBook(b.id, b.name));
+    block.appendChild(row);
+  });
+
+  return block;
+}
+
 function render(){
   const main = document.getElementById('main');
   const q = query.trim();
@@ -687,103 +758,53 @@ function render(){
   const books_all = allBooks();
   let anyShown = false;
 
-  if(activeCat === 'pdfs'){
-    const files = q ? pdfFiles.filter(f => normalizeFa(f).includes(normalizeFa(q))) : pdfFiles;
-    if(files.length === 0){
-      main.innerHTML = `<div class="empty-state">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <div>جزوه‌ای با این مشخصات پیدا نشد.</div>
-      </div>`;
-    } else {
-      const block = document.createElement('div');
-      block.className = 'category-block';
-      const head = document.createElement('div');
-      head.className = 'category-head';
-      head.innerHTML = `<h2>📄 جزوه‌های آموزشی</h2><div class="count mono">${toFa(files.length)} فایل</div>`;
-      block.appendChild(head);
-      const list = document.createElement('div');
-      list.innerHTML = files.map(f => `
-        <a class="pdf-row" href="/files/${encodeURIComponent(f)}" target="_blank" rel="noopener">
-          <span class="pdf-name">📄 ${escapeHtml(f.replace(/\.pdf$/i,''))}</span>
-          <span class="pdf-dl">دانلود ⬇</span>
-        </a>
-      `).join('');
-      block.appendChild(list);
-      main.appendChild(block);
-    }
-    document.getElementById('statTitles').textContent = toFa(books_all.length);
-    document.getElementById('statCopies').textContent = toFa(books_all.reduce((s,b)=>s+b.count,0));
-    document.getElementById('statCats').textContent = toFa(LIBRARY_DATA.cat_order.length);
-    return;
-  }
-
-  LIBRARY_DATA.cat_order.forEach(catNum => {
-    if(activeCat !== 'all' && String(catNum) !== String(activeCat)) return;
-    const catName = LIBRARY_DATA.categories[String(catNum)];
-    let books = books_all.filter(b => b.cat_num === catNum);
-    if(q){
-      books = books.filter(b => normalizeFa(b.name).includes(normalizeFa(q)));
-    }
-    if(books.length === 0) return;
-
-    anyShown = true;
-    const block = document.createElement('div');
-    block.className = 'category-block';
-
-    const head = document.createElement('div');
-    head.className = 'category-head';
-    head.innerHTML = `<h2>${catName}</h2><div class="count mono">${toFa(books.length)} عنوان</div>`;
-    block.appendChild(head);
-
-    books.forEach((b, i) => {
-      const st = bookStatus[b.id];
-      const borrowed = st ? (st.borrowed || 0) : 0;
-      const available = b.count - borrowed;
-      let badgeClass = '';
-      let badgeText = '';
-      if(borrowed <= 0){
-        badgeText = `${toFa(b.count)} نسخه`;
-      } else if(borrowed < b.count){
-        badgeClass = 'partial';
-        badgeText = `🔻 ${toFa(available)} از ${toFa(b.count)} موجود`;
-      } else {
-        badgeClass = 'borrowed';
-        badgeText = `🔴 امانت`;
-      }
-
-      const row = document.createElement('div');
-      row.className = 'book-row';
-      row.innerHTML = `
-        <div class="book-idx">${toFa(i+1)}</div>
-        <div>
-          <div class="book-name">${escapeHtml(b.name)}</div>
-          ${b.desc ? `<div class="book-desc">${escapeHtml(b.desc)}</div>` : ''}
-          ${borrowed > 0 && st ? `<div class="book-borrower">🔴 ${st.note ? `امانت نزد: ${escapeHtml(st.note)}` : 'امانت داده شده'}${st.date ? ` — از ${escapeHtml(st.date)}` : ''}</div>` : ''}
-        </div>
-        <div class="book-actions">
-          <div class="book-count ${badgeClass} ${adminMode ? 'is-admin' : ''}">${badgeText}</div>
-          ${adminMode ? `<div class="book-admin-actions">
-            <button class="icon-btn edit-book-btn" title="ویرایش تعداد">✏️</button>
-            <button class="icon-btn danger delete-book-btn" title="حذف کتاب">🗑</button>
-          </div>` : ''}
-        </div>
-      `;
-      row.querySelector('.book-count').addEventListener('click', () => toggleBook(b.id, b));
-      const editBtn = row.querySelector('.edit-book-btn');
-      if(editBtn) editBtn.addEventListener('click', () => editBookCount(b.id, b.count, b.name));
-      const delBtn = row.querySelector('.delete-book-btn');
-      if(delBtn) delBtn.addEventListener('click', () => deleteBook(b.id, b.name));
-      block.appendChild(row);
+  if(q){
+    // Universal search: look through every category and every PDF, ignore the active tab.
+    LIBRARY_DATA.cat_order.forEach(catNum => {
+      const catName = LIBRARY_DATA.categories[String(catNum)];
+      const books = books_all.filter(b => b.cat_num === catNum && normalizeFa(b.name).includes(normalizeFa(q)));
+      if(books.length === 0) return;
+      anyShown = true;
+      main.appendChild(renderBookBlock(catName, books));
     });
 
-    main.appendChild(block);
-  });
+    const matchingFiles = pdfFiles.filter(f => normalizeFa(f.name).includes(normalizeFa(q)));
+    if(matchingFiles.length > 0){
+      anyShown = true;
+      main.appendChild(renderPdfBlock(matchingFiles, matchingFiles.length));
+    }
 
-  if(!anyShown){
-    main.innerHTML = `<div class="empty-state">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <div>کتابی با این مشخصات پیدا نشد.</div>
-    </div>`;
+    if(!anyShown){
+      main.innerHTML = `<div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <div>چیزی با این مشخصات پیدا نشد.</div>
+      </div>`;
+    }
+  } else if(activeCat === 'pdfs'){
+    if(pdfFiles.length === 0){
+      main.innerHTML = `<div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <div>هنوز جزوه‌ای اضافه نشده.</div>
+      </div>`;
+    } else {
+      main.appendChild(renderPdfBlock(pdfFiles, pdfFiles.length));
+    }
+  } else {
+    LIBRARY_DATA.cat_order.forEach(catNum => {
+      if(activeCat !== 'all' && String(catNum) !== String(activeCat)) return;
+      const catName = LIBRARY_DATA.categories[String(catNum)];
+      const books = books_all.filter(b => b.cat_num === catNum);
+      if(books.length === 0) return;
+      anyShown = true;
+      main.appendChild(renderBookBlock(catName, books));
+    });
+
+    if(!anyShown){
+      main.innerHTML = `<div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <div>کتابی با این مشخصات پیدا نشد.</div>
+      </div>`;
+    }
   }
 
   document.getElementById('statTitles').textContent = toFa(books_all.length);
@@ -831,10 +852,21 @@ document.getElementById('searchInput').addEventListener('input', (e) => {
 });
 
 // ===== PDF handouts =====
+// When there is no live server (e.g. this page is hosted on GitHub Pages),
+// PDFs can't be listed automatically from a folder. List filenames here —
+// each one must actually exist inside a "جزوه-ها" folder next to this page.
+const staticPdfList = [
+  "IEC 61439-1-2020.pdf"
+];
+
 let pdfFiles = [];
 async function loadPdfList(){
   const data = await tryFetchJson('/api/pdfs');
-  pdfFiles = Array.isArray(data) ? data : [];
+  if(Array.isArray(data)){
+    pdfFiles = data.map(f => ({ name: f, url: `/files/${encodeURIComponent(f)}` }));
+  } else {
+    pdfFiles = staticPdfList.map(f => ({ name: f, url: `جزوه-ها/${encodeURIComponent(f)}` }));
+  }
   renderChips();
   if(activeCat === 'pdfs') render();
 }

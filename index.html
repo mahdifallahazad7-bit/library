@@ -688,7 +688,7 @@ function renderPdfBlock(files, showCount){
   block.appendChild(head);
   const list = document.createElement('div');
   list.innerHTML = files.map(f => `
-    <a class="pdf-row" href="${f.url}" download target="_blank" rel="noopener">
+    <a class="pdf-row" href="${f.url}" download="${escapeHtml(f.name)}">
       <span class="pdf-name">📄 ${escapeHtml(f.name.replace(/\.pdf$/i,''))}</span>
       <span class="pdf-dl">دانلود ⬇</span>
     </a>
@@ -856,8 +856,7 @@ document.getElementById('searchInput').addEventListener('input', (e) => {
 // PDFs can't be listed automatically from a folder. List filenames here —
 // each one must actually exist inside a "جزوه-ها" folder next to this page.
 const staticPdfList = [
-  "IEC 61439-1-2020.pdf",
-  "IEC 62271-200-2021_230806_082417.pdf",
+  "IEC 61439-1-2020.pdf"
 ];
 
 let pdfFiles = [];

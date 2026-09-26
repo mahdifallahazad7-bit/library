@@ -686,13 +686,65 @@ function renderPdfBlock(files, showCount){
   head.className = 'category-head';
   head.innerHTML = `<h2>📄 جزوه‌های آموزشی</h2><div class="count mono">${toFa(showCount)} فایل</div>`;
   block.appendChild(head);
+
   const list = document.createElement('div');
-  list.innerHTML = files.map(f => `
-    <a class="pdf-row" href="${f.url}" download="${escapeHtml(f.name)}">
-      <span class="pdf-name">📄 ${escapeHtml(f.name.replace(/\.pdf$/i,''))}</span>
-      <span class="pdf-dl">دانلود ⬇</span>
-    </a>
-  `).join('');
+
+  files.forEach(f => {
+    const row = document.createElement('a');
+    row.className = 'pdf-row';
+    row.href = f.url;
+    row.target = '_blank';
+    row.rel = 'noopener';
+    row.setAttribute('download', f.name);
+
+    const name = document.createElement('span');
+    name.className = 'pdf-name';
+    name.textContent = '📄 ' + f.name.replace(/\.pdf$/i, '');
+
+    const dl = document.createElement('span');
+    dl.className = 'pdf-dl';
+    dl.textContent = 'دانلود ⬇';
+
+    row.appendChild(name);
+    row.appendChild(dl);
+
+    // On mobile browsers the HTML download attribute is not always honored.
+    // Try a real same-origin download first; if the browser/server does not
+    // allow it, fall back to opening the PDF in a new tab.
+    row.addEventListener('click', async (e) => {
+      e.preventDefault();
+
+      try {
+        const response = await fetch(f.url, {
+          method: 'GET',
+          credentials: 'same-origin',
+          cache: 'no-store'
+        });
+
+        if (!response.ok) throw new Error('PDF not found');
+
+        const blob = await response.blob();
+        if (!blob.size) throw new Error('Empty PDF');
+
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = f.name;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      } catch (err) {
+        // Reliable fallback for mobile: open the actual PDF.
+        window.open(f.url, '_blank', 'noopener');
+      }
+    });
+
+    list.appendChild(row);
+  });
+
   block.appendChild(list);
   return block;
 }

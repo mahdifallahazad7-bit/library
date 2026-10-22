@@ -171,7 +171,8 @@
     padding-inline-start:10px; border-inline-start:5px solid var(--amber);
   }
   .category-head .count{
-    font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--text-dim); flex-shrink:0;
+    font-size:12.5px; color:var(--text-dim); flex-shrink:0;
+    direction:rtl; unicode-bidi:isolate; display:flex; gap:14px;
   }
 
   .book-row{
@@ -375,7 +376,7 @@
       <div class="brand-left">
         <p class="eyebrow">شرکت <b>ایستا نوآوران نیرو</b> · واحد آموزش</p>
         <h1>کتابخانه فنی</h1>
-        <p class="subtitle">فهرست کتاب‌های موجود در واحدهای مختلف شرکت</p>
+        <p class="subtitle">فهرست کتاب‌ها و جزوه‌های موجود</p>
       </div>
       <div class="stats">
         <div class="stat"><b class="mono" id="statTitles">۰</b><span>عنوان</span></div>
@@ -383,7 +384,7 @@
         <div class="stat"><b class="mono" id="statCats">۰</b><span>دسته</span></div>
       </div>
     </div>
-    <div class="notice">📚 کتاب مورد نظرتون رو پیدا کردید؟ برای درخواست و امانت گرفتن، حضوری به <b>واحد آموزش</b> مراجعه کنید.</div>
+    <div class="notice">📚 کتاب مورد نظرتون رو پیدا کردید؟ برای درخواست و امانت گرفتن، حضوری به <b>واحد آموزش</b> مراجعه کنید.<br>لطفاً دوستانی که PDF آموزشی خوبی دارند به آقای فلاح آزاد تحویل دهند تا مراحل بارگذاری در کتابخانه را انجام دهند.</div>
     <button class="qr-toggle" id="qrToggle" onclick="toggleQr()">▤ بارکد ورود به لیست برای چاپ</button>
     <button class="qr-toggle" id="adminToggle" onclick="toggleAdmin()">🔒 ورود مدیر</button>
     <button class="qr-toggle" id="tokenBtn" onclick="setToken()" style="display:none;">🔑 توکن ذخیره‌سازی</button>
@@ -803,6 +804,10 @@ function renderPdfBlock(files, showCount){
   return block;
 }
 
+function countHtml(titles, copies){
+  return `<span>عنوان ${toFa(titles)}</span><span>تعداد ${toFa(copies)}</span>`;
+}
+
 function renderBookBlock(catName, books, countText){
   const block = document.createElement('div');
   block.className = 'category-block';
@@ -810,7 +815,7 @@ function renderBookBlock(catName, books, countText){
   const head = document.createElement('div');
   head.className = 'category-head';
   const totalCopies = books.reduce((sum, b) => sum + b.count, 0);
-  head.innerHTML = `<h2>${catName}</h2><div class="count mono">${countText || (toFa(books.length) + ' عنوان · تعداد ' + toFa(totalCopies))}</div>`;
+  head.innerHTML = `<h2>${catName}</h2><div class="count">${countText || countHtml(books.length, totalCopies)}</div>`;
   block.appendChild(head);
 
   books.forEach((b, i) => {
@@ -901,7 +906,7 @@ function render(){
       </div>`;
     } else {
       const copies = out.reduce((sum, b) => sum + (bookStatus[b.id].borrowed || 0), 0);
-      main.appendChild(renderBookBlock('🔴 کتاب‌های امانت داده شده', out, toFa(out.length) + ' عنوان · تعداد ' + toFa(copies)));
+      main.appendChild(renderBookBlock('🔴 کتاب‌های امانت داده شده', out, countHtml(out.length, copies)));
     }
   } else if(activeCat === 'pdfs'){
     if(pdfFiles.length === 0){
@@ -954,7 +959,7 @@ function renderChips(){
   const borrowedTitles = books_all.filter(b => ((bookStatus[b.id] || {}).borrowed || 0) > 0).length;
   const borrowedChip = document.createElement('button');
   borrowedChip.className = 'chip' + (activeCat === 'borrowed' ? ' active' : '');
-  borrowedChip.innerHTML = `🔴 امانت داده شده <span class="n mono">${toFa(borrowedTitles)}</span>`;
+  borrowedChip.innerHTML = `🔴 کتاب‌های امانت داده شده <span class="n mono">${toFa(borrowedTitles)}</span>`;
   borrowedChip.onclick = () => { activeCat = 'borrowed'; renderChips(); render(); };
   chips.appendChild(borrowedChip);
 

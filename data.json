@@ -1,5 +1,12 @@
 {
- "status": {},
+ "status": {
+  "b60": {
+   "borrowed": 1,
+   "note": "حسن آزادی دوست",
+   "date": "۳۰ مهر ۱۴۰۵",
+   "ts": 1792668196354
+  }
+ },
  "extraBooks": [],
  "overrides": {}
 }

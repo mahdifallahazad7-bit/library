@@ -380,6 +380,7 @@
     <div class="notice">📚 کتاب مورد نظرتون رو پیدا کردید؟ برای درخواست و امانت گرفتن، حضوری به <b>واحد آموزش</b> مراجعه کنید.</div>
     <button class="qr-toggle" id="qrToggle" onclick="toggleQr()">▤ بارکد ورود به لیست برای چاپ</button>
     <button class="qr-toggle" id="adminToggle" onclick="toggleAdmin()">🔒 ورود مدیر</button>
+    <button class="qr-toggle" id="tokenBtn" onclick="setToken()" style="display:none;">🔑 توکن ذخیره‌سازی</button>
   </div>
 </header>
 
@@ -470,73 +471,124 @@ function allBooks(){
     });
 }
 
-// ===== data loading (server API with localStorage fallback) =====
-async function tryFetchJson(url){
+// ===== shared data: data.json inside the GitHub repo =====
+// Everyone READS data.json (public). Only the admin WRITES it, using a
+// personal access token that lives only in the admin's own browser.
+const GH_OWNER = 'mahdifallahazad7-bit';
+const GH_REPO = 'library';
+const GH_BRANCH = 'main';
+const GH_FILE = 'data.json';
+
+function normData(d){
+  d = (d && typeof d === 'object') ? d : {};
+  const isObj = x => x && typeof x === 'object' && !Array.isArray(x);
+  return {
+    status: isObj(d.status) ? d.status : {},
+    extraBooks: Array.isArray(d.extraBooks) ? d.extraBooks : [],
+    overrides: isObj(d.overrides) ? d.overrides : {}
+  };
+}
+function applyData(d){
+  d = normData(d);
+  bookStatus = d.status;
+  extraBooks = d.extraBooks;
+  overrides = d.overrides;
+}
+function getToken(){ try{ return localStorage.getItem('ghToken') || ''; }catch(e){ return ''; } }
+
+function b64ToUtf8(b64){
+  const bin = atob(b64.replace(/\s/g, ''));
+  const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+function utf8ToB64(str){
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  bytes.forEach(b => { bin += String.fromCharCode(b); });
+  return btoa(bin);
+}
+
+async function readPublicData(){
   try{
-    const res = await fetch(url, {cache:'no-store'});
-    const text = await res.text();
-    const data = JSON.parse(text);
-    return data;
+    const res = await fetch(`data.json?t=${Date.now()}`, {cache:'no-store'});
+    if(!res.ok) return null;
+    return normData(JSON.parse(await res.text()));
+  }catch(e){ return null; }
+}
+async function ghRead(){
+  const res = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_FILE}?ref=${GH_BRANCH}&t=${Date.now()}`, {
+    headers: {'Authorization': `Bearer ${getToken()}`, 'Accept': 'application/vnd.github+json'},
+    cache: 'no-store'
+  });
+  if(res.status === 404) return {data: normData(null), sha: null};
+  if(!res.ok) throw new Error('GitHub ' + res.status);
+  const j = await res.json();
+  return {data: normData(JSON.parse(b64ToUtf8(j.content))), sha: j.sha};
+}
+async function ghWrite(data, sha, message){
+  const body = {message, content: utf8ToB64(JSON.stringify(data, null, 1)), branch: GH_BRANCH};
+  if(sha) body.sha = sha;
+  const res = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_FILE}`, {
+    method: 'PUT',
+    headers: {'Authorization': `Bearer ${getToken()}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json'},
+    body: JSON.stringify(body)
+  });
+  if(!res.ok) throw new Error('GitHub ' + res.status);
+}
+
+async function loadAllData(){
+  let d = null;
+  if(getToken()){
+    try{ d = (await ghRead()).data; }catch(e){ d = null; }
+  }
+  if(!d) d = await readPublicData();
+  applyData(d);
+}
+
+function showToast(msg){
+  let t = document.getElementById('toast');
+  if(!t){
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#101c2c;color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;line-height:1.7;z-index:200;max-width:90%;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.35)';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => { t.style.display = 'none'; }, 6000);
+}
+
+function setToken(){
+  const t = prompt('توکن گیت‌هاب رو اینجا بچسبونید (فقط روی همین دستگاه ذخیره میشه):', getToken());
+  if(t === null) return;
+  if(t.trim()) localStorage.setItem('ghToken', t.trim());
+  else localStorage.removeItem('ghToken');
+  showToast(t.trim() ? '🔑 توکن ذخیره شد.' : 'توکن پاک شد.');
+}
+
+// Apply a change on top of the freshest copy of data.json and save it.
+async function saveChange(mutator, message){
+  if(!getToken()){
+    setToken();
+    if(!getToken()) return false;
+  }
+  try{
+    let {data, sha} = await ghRead();
+    mutator(data);
+    try{
+      await ghWrite(data, sha, message);
+    }catch(e){
+      ({data, sha} = await ghRead());
+      mutator(data);
+      await ghWrite(data, sha, message);
+    }
+    applyData(data);
+    showToast('✅ ذخیره شد. برای بقیه حدود ۱ تا ۲ دقیقه دیگه نمایش داده میشه.');
+    return true;
   }catch(e){
-    return undefined; // signals: no working API here
-  }
-}
-
-async function loadStatus(){
-  const data = await tryFetchJson('/api/status');
-  if(data && typeof data === 'object'){
-    bookStatus = data;
-  } else {
-    try{ bookStatus = JSON.parse(localStorage.getItem('bookStatus') || '{}'); }
-    catch(e2){ bookStatus = {}; }
-  }
-}
-
-async function loadExtraBooks(){
-  const data = await tryFetchJson('/api/extrabooks');
-  if(Array.isArray(data)){
-    extraBooks = data;
-  } else {
-    try{ extraBooks = JSON.parse(localStorage.getItem('extraBooks') || '[]'); }
-    catch(e2){ extraBooks = []; }
-  }
-  const nums = extraBooks.map(b => parseInt((b.id||'x0').replace('x',''),10) || 0);
-  nextExtraId = (nums.length ? Math.max(...nums) : 0) + 1;
-}
-
-async function loadOverrides(){
-  const data = await tryFetchJson('/api/overrides');
-  if(data && typeof data === 'object' && !Array.isArray(data)){
-    overrides = data;
-  } else {
-    try{ overrides = JSON.parse(localStorage.getItem('overrides') || '{}'); }
-    catch(e2){ overrides = {}; }
-  }
-}
-
-async function callApi(path, params){
-  const qs = Object.entries(params).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&');
-  const data = await tryFetchJson(`${path}?${qs}`);
-  return data; // undefined if no live API
-}
-
-async function setStatus(id, borrowedCount, note, date){
-  const result = await callApi('/api/toggle', {id, count: borrowedCount, note, date});
-  if(result === undefined){
-    let local = {};
-    try{ local = JSON.parse(localStorage.getItem('bookStatus') || '{}'); }catch(e2){}
-    if(borrowedCount <= 0) delete local[id];
-    else local[id] = {borrowed: borrowedCount, note, date};
-    localStorage.setItem('bookStatus', JSON.stringify(local));
-  }
-}
-
-async function addBookApi(name, catNum, count){
-  const result = await callApi('/api/addbook', {name, cat: catNum, count});
-  if(result === undefined){
-    const newBook = { id: `x${nextExtraId++}`, name, cat_num: catNum, count, sheet:'', row:0, desc:'' };
-    extraBooks.push(newBook);
-    localStorage.setItem('extraBooks', JSON.stringify(extraBooks));
+    alert('ذخیره نشد (' + e.message + ').\nاگه 401 یا 403 بود، توکن اشتباه یا منقضی شده: از دکمه‌ی «🔑 توکن» دوباره وارد کنید.\nاگه اینترنت یا فیلتر مشکل داره، دوباره امتحان کنید.');
+    return false;
   }
 }
 
@@ -567,7 +619,9 @@ function updateAdminUI(){
   if(adminMode){
     btn.textContent = '🔓 خروج از حالت مدیر';
     addBtn.style.display = 'inline-flex';
+    document.getElementById('tokenBtn').style.display = 'inline-flex';
   } else {
+    document.getElementById('tokenBtn').style.display = 'none';
     btn.textContent = '🔒 ورود مدیر';
     addBtn.style.display = 'none';
   }
@@ -607,9 +661,11 @@ async function toggleBook(id, book){
     date = '';
   }
 
-  await setStatus(id, n, note, date);
-  await loadStatus();
-  render();
+  const ok = await saveChange(d => {
+    if(n <= 0) delete d.status[id];
+    else d.status[id] = {borrowed: n, note, date};
+  }, 'امانت: ' + id);
+  if(ok) render();
 }
 
 // ===== edit / delete book (admin only) =====
@@ -620,30 +676,20 @@ async function editBookCount(id, currentCount, name){
   let n = parseInt(toEn(input.trim()), 10);
   if(isNaN(n) || n < 0){ alert('یه عدد معتبر وارد کنید.'); return; }
 
-  const result = await callApi('/api/editbook', {id, count: n});
-  if(result === undefined){
-    overrides[id] = Object.assign({}, overrides[id], {count: n});
-    localStorage.setItem('overrides', JSON.stringify(overrides));
-  } else {
-    await loadOverrides();
-  }
-  renderChips();
-  render();
+  const ok = await saveChange(d => {
+    d.overrides[id] = Object.assign({}, d.overrides[id], {count: n});
+  }, 'ویرایش تعداد: ' + id);
+  if(ok){ renderChips(); render(); }
 }
 
 async function deleteBook(id, name){
   if(!adminMode) return;
   if(!confirm(`مطمئنید می‌خواید «${name}» رو کامل از لیست حذف کنید؟ این کار قابل بازگشت نیست.`)) return;
 
-  const result = await callApi('/api/deletebook', {id});
-  if(result === undefined){
-    overrides[id] = Object.assign({}, overrides[id], {deleted: true});
-    localStorage.setItem('overrides', JSON.stringify(overrides));
-  } else {
-    await loadOverrides();
-  }
-  renderChips();
-  render();
+  const ok = await saveChange(d => {
+    d.overrides[id] = Object.assign({}, d.overrides[id], {deleted: true});
+  }, 'حذف کتاب: ' + id);
+  if(ok){ renderChips(); render(); }
 }
 
 // ===== add book modal =====
@@ -671,11 +717,15 @@ async function submitAddBook(){
   if(!name){ alert('اسم کتاب رو وارد کنید.'); return; }
   if(isNaN(count) || count < 1) count = 1;
 
-  await addBookApi(name, catNum, count);
-  await loadExtraBooks();
-  closeAddBookModal();
-  renderChips();
-  render();
+  const ok = await saveChange(d => {
+    const max = Math.max(0, ...d.extraBooks.map(b => parseInt(String(b.id).replace('x',''), 10) || 0));
+    d.extraBooks.push({id: 'x' + (max + 1), name, cat_num: catNum, count, sheet: '', row: 0, desc: ''});
+  }, 'افزودن کتاب: ' + name);
+  if(ok){
+    closeAddBookModal();
+    renderChips();
+    render();
+  }
 }
 
 // ===== render =====
@@ -686,65 +736,13 @@ function renderPdfBlock(files, showCount){
   head.className = 'category-head';
   head.innerHTML = `<h2>📄 جزوه‌های آموزشی</h2><div class="count mono">${toFa(showCount)} فایل</div>`;
   block.appendChild(head);
-
   const list = document.createElement('div');
-
-  files.forEach(f => {
-    const row = document.createElement('a');
-    row.className = 'pdf-row';
-    row.href = f.url;
-    row.target = '_blank';
-    row.rel = 'noopener';
-    row.setAttribute('download', f.name);
-
-    const name = document.createElement('span');
-    name.className = 'pdf-name';
-    name.textContent = '📄 ' + f.name.replace(/\.pdf$/i, '');
-
-    const dl = document.createElement('span');
-    dl.className = 'pdf-dl';
-    dl.textContent = 'دانلود ⬇';
-
-    row.appendChild(name);
-    row.appendChild(dl);
-
-    // On mobile browsers the HTML download attribute is not always honored.
-    // Try a real same-origin download first; if the browser/server does not
-    // allow it, fall back to opening the PDF in a new tab.
-    row.addEventListener('click', async (e) => {
-      e.preventDefault();
-
-      try {
-        const response = await fetch(f.url, {
-          method: 'GET',
-          credentials: 'same-origin',
-          cache: 'no-store'
-        });
-
-        if (!response.ok) throw new Error('PDF not found');
-
-        const blob = await response.blob();
-        if (!blob.size) throw new Error('Empty PDF');
-
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = f.name;
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-      } catch (err) {
-        // Reliable fallback for mobile: open the actual PDF.
-        window.open(f.url, '_blank', 'noopener');
-      }
-    });
-
-    list.appendChild(row);
-  });
-
+  list.innerHTML = files.map(f => `
+    <a class="pdf-row" href="${f.url}" download="${escapeHtml(f.name)}">
+      <span class="pdf-name">📄 ${escapeHtml(f.name.replace(/\.pdf$/i,''))}</span>
+      <span class="pdf-dl">دانلود ⬇</span>
+    </a>
+  `).join('');
   block.appendChild(list);
   return block;
 }
@@ -908,19 +906,12 @@ document.getElementById('searchInput').addEventListener('input', (e) => {
 // PDFs can't be listed automatically from a folder. List filenames here —
 // each one must actually exist inside a "جزوه-ها" folder next to this page.
 const staticPdfList = [
-  "IEC 61439-1-2020.pdf",
-  "IEC 62271-200-2021_230806_082417.pdf",
-  "جزوه_جامع_ایمنی_و_دستگاههای_فلزکاری.pdf"
+  "IEC 61439-1-2020.pdf"
 ];
 
 let pdfFiles = [];
 async function loadPdfList(){
-  const data = await tryFetchJson('/api/pdfs');
-  if(Array.isArray(data)){
-    pdfFiles = data.map(f => ({ name: f, url: `/files/${encodeURIComponent(f)}` }));
-  } else {
-    pdfFiles = staticPdfList.map(f => ({ name: f, url: encodeURIComponent(f) }));
-  }
+  pdfFiles = staticPdfList.map(f => ({ name: f, url: `جزوه-ها/${encodeURIComponent(f)}` }));
   renderChips();
   if(activeCat === 'pdfs') render();
 }
@@ -928,9 +919,7 @@ async function loadPdfList(){
 updateAdminUI();
 renderChips();
 (async function init(){
-  await loadStatus();
-  await loadExtraBooks();
-  await loadOverrides();
+  await loadAllData();
   renderChips();
   render();
   await loadPdfList();

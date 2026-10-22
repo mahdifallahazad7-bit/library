@@ -1,12 +1,5 @@
 {
- "status": {
-  "b12": {
-   "borrowed": 2,
-   "note": "ررررر",
-   "date": "۳۰ مهر ۱۴۰۵",
-   "ts": 1792667462066
-  }
- },
+ "status": {},
  "extraBooks": [],
  "overrides": {}
 }

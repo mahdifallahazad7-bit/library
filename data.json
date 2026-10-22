@@ -1,11 +1,5 @@
 {
- "status": {
-  "b15": {
-   "borrowed": 1,
-   "note": "علی",
-   "date": "۳۰ مهر ۱۴۰۵"
-  }
- },
+ "status": {},
  "extraBooks": [],
  "overrides": {}
 }

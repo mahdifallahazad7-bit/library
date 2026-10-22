@@ -210,6 +210,12 @@
   .book-borrower{
     display:block; font-size:11px; color:var(--danger); margin-top:2px; font-weight:600;
   }
+  .book-row.overdue-row{
+    background:rgba(165,63,63,0.10);
+    border-inline-start:4px solid var(--danger);
+    padding-inline-start:8px;
+  }
+  .book-borrower.overdue{ color:var(--danger); font-weight:800; font-size:12px; }
   .book-actions{
     display:flex; flex-direction:column; align-items:center; gap:6px;
   }
@@ -653,17 +659,20 @@ async function toggleBook(id, book){
   }
 
   let date = st ? (st.date || '') : '';
+  let ts = st ? (st.ts || 0) : 0;
   if(n > 0 && currentBorrowed === 0){
     const now = new Date();
     const [jy, jm, jd] = toJalali(now.getFullYear(), now.getMonth()+1, now.getDate());
     date = `${toFa(jd)} ${persianMonths[jm-1]} ${toFa(jy)}`;
+    ts = now.getTime();
   } else if(n <= 0){
     date = '';
+    ts = 0;
   }
 
   const ok = await saveChange(d => {
     if(n <= 0) delete d.status[id];
-    else d.status[id] = {borrowed: n, note, date};
+    else d.status[id] = {borrowed: n, note, date, ts};
   }, 'امانت: ' + id);
   if(ok) render();
 }
@@ -728,6 +737,53 @@ async function submitAddBook(){
   }
 }
 
+// ===== borrow duration helpers =====
+function jalaliToGregorian(jy, jm, jd){
+  jy += 1595;
+  let days = -355668 + (365*jy) + Math.floor(jy/33)*8 + Math.floor(((jy%33)+3)/4) + jd + ((jm < 7) ? (jm-1)*31 : ((jm-7)*30)+186);
+  let gy = 400*Math.floor(days/146097);
+  days %= 146097;
+  if(days > 36524){
+    days--;
+    gy += 100*Math.floor(days/36524);
+    days %= 36524;
+    if(days >= 365) days++;
+  }
+  gy += 4*Math.floor(days/1461);
+  days %= 1461;
+  if(days > 365){
+    gy += Math.floor((days-1)/365);
+    days = (days-1) % 365;
+  }
+  let gd = days + 1;
+  const sal = [0,31,((gy%4===0 && gy%100!==0) || (gy%400===0)) ? 29 : 28,31,30,31,30,31,31,30,31,30,31];
+  let gm;
+  for(gm = 0; gm < 13 && gd > sal[gm]; gm++) gd -= sal[gm];
+  return [gy, gm, gd];
+}
+function parseJalaliString(str){
+  const m = toEn(String(str || '')).match(/(\d+)\s+(\S+)\s+(\d+)/);
+  if(!m) return null;
+  const mi = persianMonths.indexOf(m[2]);
+  if(mi < 0) return null;
+  const [gy, gm, gd] = jalaliToGregorian(parseInt(m[3],10), mi+1, parseInt(m[1],10));
+  return new Date(gy, gm-1, gd).getTime();
+}
+function borrowInfo(st){
+  const out = {days: null, overdue: false, text: ''};
+  if(!st) return out;
+  const ts = st.ts || parseJalaliString(st.date);
+  if(!ts) return out;
+  const days = Math.max(0, Math.floor((Date.now() - ts) / 86400000));
+  out.days = days;
+  if(days >= 30){
+    const months = Math.floor(days / 30), rem = days % 30;
+    out.overdue = true;
+    out.text = `⚠️ ${toFa(months)} ماه${rem ? ' و ' + toFa(rem) + ' روز' : ''} است که امانت داده شده`;
+  }
+  return out;
+}
+
 // ===== render =====
 function renderPdfBlock(files, showCount){
   const block = document.createElement('div');
@@ -747,13 +803,14 @@ function renderPdfBlock(files, showCount){
   return block;
 }
 
-function renderBookBlock(catName, books){
+function renderBookBlock(catName, books, countText){
   const block = document.createElement('div');
   block.className = 'category-block';
 
   const head = document.createElement('div');
   head.className = 'category-head';
-  head.innerHTML = `<h2>${catName}</h2><div class="count mono">${toFa(books.length)} عنوان</div>`;
+  const totalCopies = books.reduce((sum, b) => sum + b.count, 0);
+  head.innerHTML = `<h2>${catName}</h2><div class="count mono">${countText || (toFa(books.length) + ' عنوان · تعداد ' + toFa(totalCopies))}</div>`;
   block.appendChild(head);
 
   books.forEach((b, i) => {
@@ -773,13 +830,14 @@ function renderBookBlock(catName, books){
     }
 
     const row = document.createElement('div');
-    row.className = 'book-row';
+    const info = borrowInfo(st);
+    row.className = 'book-row' + (borrowed > 0 && info.overdue ? ' overdue-row' : '');
     row.innerHTML = `
       <div class="book-idx">${toFa(i+1)}</div>
       <div>
         <div class="book-name">${escapeHtml(b.name)}</div>
         ${b.desc ? `<div class="book-desc">${escapeHtml(b.desc)}</div>` : ''}
-        ${borrowed > 0 && st ? `<div class="book-borrower">🔴 ${st.note ? `امانت نزد: ${escapeHtml(st.note)}` : 'امانت داده شده'}${st.date ? ` — از ${escapeHtml(st.date)}` : ''}</div>` : ''}
+        ${borrowed > 0 && st ? `<div class="book-borrower ${info.overdue ? 'overdue' : ''}">🔴 ${st.note ? `امانت نزد: ${escapeHtml(st.note)}` : 'امانت داده شده'}${st.date ? ` — از ${escapeHtml(st.date)}` : ''}${info.overdue ? ` — ${info.text}` : ''}</div>` : ''}
       </div>
       <div class="book-actions">
         <div class="book-count ${badgeClass} ${adminMode ? 'is-admin' : ''}">${badgeText}</div>
@@ -830,6 +888,21 @@ function render(){
         <div>چیزی با این مشخصات پیدا نشد.</div>
       </div>`;
     }
+  } else if(activeCat === 'borrowed'){
+    const out = books_all.filter(b => ((bookStatus[b.id] || {}).borrowed || 0) > 0);
+    out.sort((a, b) => {
+      const ta = borrowInfo(bookStatus[a.id]).days, tb = borrowInfo(bookStatus[b.id]).days;
+      return (tb === null ? -1 : tb) - (ta === null ? -1 : ta);
+    });
+    if(out.length === 0){
+      main.innerHTML = `<div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <div>الان هیچ کتابی امانت داده نشده.</div>
+      </div>`;
+    } else {
+      const copies = out.reduce((sum, b) => sum + (bookStatus[b.id].borrowed || 0), 0);
+      main.appendChild(renderBookBlock('🔴 کتاب‌های امانت داده شده', out, toFa(out.length) + ' عنوان · تعداد ' + toFa(copies)));
+    }
   } else if(activeCat === 'pdfs'){
     if(pdfFiles.length === 0){
       main.innerHTML = `<div class="empty-state">
@@ -877,6 +950,13 @@ function renderChips(){
   allChip.innerHTML = `همه <span class="n mono">${toFa(totalBooks)}</span>`;
   allChip.onclick = () => { activeCat = 'all'; renderChips(); render(); };
   chips.appendChild(allChip);
+
+  const borrowedTitles = books_all.filter(b => ((bookStatus[b.id] || {}).borrowed || 0) > 0).length;
+  const borrowedChip = document.createElement('button');
+  borrowedChip.className = 'chip' + (activeCat === 'borrowed' ? ' active' : '');
+  borrowedChip.innerHTML = `🔴 امانت داده شده <span class="n mono">${toFa(borrowedTitles)}</span>`;
+  borrowedChip.onclick = () => { activeCat = 'borrowed'; renderChips(); render(); };
+  chips.appendChild(borrowedChip);
 
   if(pdfFiles.length > 0){
     const pdfChip = document.createElement('button');

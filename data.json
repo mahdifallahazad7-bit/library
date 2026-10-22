@@ -1,5 +1,12 @@
 {
- "status": {},
+ "status": {
+  "b4": {
+   "borrowed": 1,
+   "note": "FIV",
+   "date": "۳۰ مهر ۱۴۰۵",
+   "ts": 1792666499688
+  }
+ },
  "extraBooks": [],
  "overrides": {}
 }

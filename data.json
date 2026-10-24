@@ -7,7 +7,17 @@
    "ts": 1792668196354
   }
  },
- "extraBooks": [],
+ "extraBooks": [
+  {
+   "id": "x1",
+   "name": "ججججج",
+   "cat_num": 2,
+   "count": 5,
+   "sheet": "",
+   "row": 0,
+   "desc": ""
+  }
+ ],
  "overrides": {},
  "pdfs": [],
  "hiddenPdfs": []

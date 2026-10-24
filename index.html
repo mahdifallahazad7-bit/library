@@ -675,7 +675,7 @@ function bufToB64(buf){
 async function addPdfFromFile(file){
   if(!adminMode || !file) return;
   if(!/\.pdf$/i.test(file.name)){ alert('فقط فایل PDF قابل قبوله.'); return; }
-  if(file.size > 25 * 1024 * 1024){ alert('حجم فایل بیشتر از ۲۵ مگابایته. فایل کوچیک‌تری انتخاب کنید.'); return; }
+  if(file.size > 50 * 1024 * 1024){ alert('حجم فایل بیشتر از ۵۰ مگابایت است. برای فایل‌های بزرگ‌تر باید فضای ذخیره‌سازی جداگانه تنظیم شود.'); return; }
   if(!getToken()){ setToken(); if(!getToken()) return; }
 
   let name = prompt('اسم جزوه (همین اسم تو لیست نمایش داده میشه):', file.name);
@@ -1237,7 +1237,8 @@ updateClock();
 setInterval(updateClock, 1000);
 
 // ===== QR code =====
-const pageUrl = window.location.href;
+// آدرس ثابت و عمومی کتابخانه؛ بارکد نباید آدرس محلی یا موقت مرورگر را ذخیره کند.
+const pageUrl = 'https://incolibrary.pages.dev/';
 document.getElementById('qrUrl').textContent = pageUrl;
 let qrBuilt = false;
 function buildQr(){

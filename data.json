@@ -36,7 +36,11 @@
    "desc": ""
   }
  ],
- "overrides": {},
+ "overrides": {
+  "x1": {
+   "deleted": true
+  }
+ },
  "pdfs": [],
  "hiddenPdfs": []
 }

@@ -9,7 +9,6 @@
  },
  "extraBooks": [],
  "overrides": {},
- "pdfs": [
-  "متر.pdf"
- ]
+ "pdfs": [],
+ "hiddenPdfs": []
 }

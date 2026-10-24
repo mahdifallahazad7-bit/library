@@ -25,6 +25,15 @@
    "sheet": "",
    "row": 0,
    "desc": ""
+  },
+  {
+   "id": "x3",
+   "name": "ججججج",
+   "cat_num": 2,
+   "count": 5,
+   "sheet": "",
+   "row": 0,
+   "desc": ""
   }
  ],
  "overrides": {},

@@ -16,6 +16,15 @@
    "sheet": "",
    "row": 0,
    "desc": ""
+  },
+  {
+   "id": "x2",
+   "name": "هه",
+   "cat_num": 2,
+   "count": 5,
+   "sheet": "",
+   "row": 0,
+   "desc": ""
   }
  ],
  "overrides": {},

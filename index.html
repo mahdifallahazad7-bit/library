@@ -672,10 +672,35 @@ function bufToB64(buf){
   return btoa(bin);
 }
 
+function fileToB64(file){
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => { const r = fr.result; resolve(r.slice(r.indexOf(',') + 1)); };
+    fr.onerror = () => reject(fr.error || new Error('read failed'));
+    fr.readAsDataURL(file);
+  });
+}
+function putWithProgress(url, headers, body, onProgress){
+  return new Promise((resolve, reject) => {
+    const x = new XMLHttpRequest();
+    x.open('PUT', url);
+    Object.entries(headers).forEach(([k, v]) => x.setRequestHeader(k, v));
+    x.upload.onprogress = e => { if(e.lengthComputable) onProgress(Math.round(e.loaded / e.total * 100)); };
+    x.onload = () => resolve({ok: x.status >= 200 && x.status < 300, status: x.status});
+    x.onerror = () => reject(new Error('اتصال قطع شد'));
+    x.send(body);
+  });
+}
+
 async function addPdfFromFile(file){
   if(!adminMode || !file) return;
   if(!/\.pdf$/i.test(file.name)){ alert('فقط فایل PDF قابل قبوله.'); return; }
-  if(file.size > 50 * 1024 * 1024){ alert('حجم فایل بیشتر از ۵۰ مگابایت است. برای فایل‌های بزرگ‌تر باید فضای ذخیره‌سازی جداگانه تنظیم شود.'); return; }
+  const MB = 1024 * 1024;
+  if(file.size > 90 * MB){
+    alert('حجم فایل بیشتر از ۹۰ مگابایته. گیت‌هاب فایل‌های بالای ۱۰۰ مگابایت رو قبول نمی‌کنه. فایل رو فشرده یا چند قسمت کنید.');
+    return;
+  }
+  if(file.size > 25 * MB && !confirm(`این فایل ${toFa(Math.round(file.size / MB))} مگابایته و آپلودش ممکنه چند دقیقه طول بکشه. تا پایان کار صفحه رو نبندید. ادامه بدیم؟`)) return;
   if(!getToken()){ setToken(); if(!getToken()) return; }
 
   let name = prompt('اسم جزوه (همین اسم تو لیست نمایش داده میشه):', file.name);
@@ -685,16 +710,18 @@ async function addPdfFromFile(file){
   if(!/\.pdf$/i.test(name)) name += '.pdf';
 
   try{
-    showToast('⏳ در حال آپلود… صبر کنید.');
+    showToast('⏳ در حال آماده‌سازی فایل…');
     let sha = null;
     const ex = await fetch(pdfApiUrl(name) + `?ref=${GH_BRANCH}&t=${Date.now()}`, {headers: ghHeaders(), cache: 'no-store'});
     if(ex.ok){
       if(!confirm('فایلی با این اسم از قبل هست. جایگزین بشه؟')) return;
       sha = (await ex.json()).sha;
     }
-    const body = {message: 'افزودن جزوه: ' + name, content: bufToB64(await file.arrayBuffer()), branch: GH_BRANCH};
-    if(sha) body.sha = sha;
-    const up = await fetch(pdfApiUrl(name), {method: 'PUT', headers: ghHeaders(true), body: JSON.stringify(body)});
+    const meta = {message: 'افزودن جزوه: ' + name, branch: GH_BRANCH};
+    if(sha) meta.sha = sha;
+    const b64 = await fileToB64(file);
+    const body = new Blob([JSON.stringify(meta).slice(0, -1) + ',"content":"', b64, '"}']);
+    const up = await putWithProgress(pdfApiUrl(name), ghHeaders(true), body, pct => showToast('⏳ در حال آپلود… ' + toFa(pct) + '٪'));
     if(!up.ok) throw new Error('GitHub ' + up.status);
   }catch(e){
     alert('آپلود نشد (' + e.message + '). اگه 401 یا 403 بود، توکن مشکل داره. اگه اینترنت ضعیفه، دوباره امتحان کنید.');
@@ -1237,8 +1264,7 @@ updateClock();
 setInterval(updateClock, 1000);
 
 // ===== QR code =====
-// آدرس ثابت و عمومی کتابخانه؛ بارکد نباید آدرس محلی یا موقت مرورگر را ذخیره کند.
-const pageUrl = 'https://incolibrary.pages.dev/';
+const pageUrl = 'https://mahdifallahazad7-bit.github.io/library/';
 document.getElementById('qrUrl').textContent = pageUrl;
 let qrBuilt = false;
 function buildQr(){

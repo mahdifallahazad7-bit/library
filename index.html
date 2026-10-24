@@ -211,6 +211,9 @@
   .book-borrower{
     display:block; font-size:11px; color:var(--danger); margin-top:2px; font-weight:600;
   }
+  .pdf-item{ display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--steel-line); }
+  .pdf-item:last-child{ border-bottom:none; }
+  .pdf-item .pdf-row{ flex:1; border-bottom:none; }
   .book-row.overdue-row{
     background:rgba(165,63,63,0.10);
     border-inline-start:4px solid var(--danger);
@@ -409,6 +412,8 @@
     </div>
     <div class="chips" id="chips"></div>
     <button class="admin-btn" id="addBookBtn" onclick="openAddBookModal()" style="display:none;">➕ افزودن کتاب</button>
+    <button class="admin-btn" id="addPdfBtn" onclick="document.getElementById('pdfFileInput').click()" style="display:none;">📄 افزودن جزوه (PDF)</button>
+    <input type="file" id="pdfFileInput" accept="application/pdf,.pdf" style="display:none;">
   </div>
 </div>
 
@@ -461,7 +466,8 @@ let activeCat = 'all';
 let query = '';
 let bookStatus = {};   // { id: {borrowed: n, note: "..."} }
 let extraBooks = [];   // books added later by admin
-let overrides = {};    // { id: {count: n} or {deleted: true} }
+let overrides = {};
+let extraPdfs = [];   // PDFs added from the admin panel (names only)    // { id: {count: n} or {deleted: true} }
 let adminMode = sessionStorage.getItem('adminMode') === '1';
 let nextExtraId = 1;
 
@@ -492,7 +498,8 @@ function normData(d){
   return {
     status: isObj(d.status) ? d.status : {},
     extraBooks: Array.isArray(d.extraBooks) ? d.extraBooks : [],
-    overrides: isObj(d.overrides) ? d.overrides : {}
+    overrides: isObj(d.overrides) ? d.overrides : {},
+    pdfs: Array.isArray(d.pdfs) ? d.pdfs : []
   };
 }
 function applyData(d){
@@ -500,6 +507,7 @@ function applyData(d){
   bookStatus = d.status;
   extraBooks = d.extraBooks;
   overrides = d.overrides;
+  extraPdfs = d.pdfs;
 }
 function getToken(){ try{ return localStorage.getItem('ghToken') || ''; }catch(e){ return ''; } }
 
@@ -591,6 +599,7 @@ async function saveChange(mutator, message){
       await ghWrite(data, sha, message);
     }
     applyData(data);
+    refreshPdfFiles();
     showToast('✅ ذخیره شد. برای بقیه حدود ۱ تا ۲ دقیقه دیگه نمایش داده میشه.');
     return true;
   }catch(e){
@@ -626,13 +635,93 @@ function updateAdminUI(){
   if(adminMode){
     btn.textContent = '🔓 خروج از حالت مدیر';
     addBtn.style.display = 'inline-flex';
+    document.getElementById('addPdfBtn').style.display = 'inline-flex';
     document.getElementById('tokenBtn').style.display = 'inline-flex';
   } else {
     document.getElementById('tokenBtn').style.display = 'none';
     btn.textContent = '🔒 ورود مدیر';
     addBtn.style.display = 'none';
+    document.getElementById('addPdfBtn').style.display = 'none';
   }
 }
+
+// ===== add / delete PDF (admin only) =====
+function ghHeaders(json){
+  const h = {'Authorization': `Bearer ${getToken()}`, 'Accept': 'application/vnd.github+json'};
+  if(json) h['Content-Type'] = 'application/json';
+  return h;
+}
+function pdfApiUrl(name){
+  return `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${encodeURIComponent(GH_PDF_DIR)}/${encodeURIComponent(name)}`;
+}
+function bufToB64(buf){
+  const bytes = new Uint8Array(buf);
+  let bin = '';
+  const chunk = 0x8000;
+  for(let i = 0; i < bytes.length; i += chunk){
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+  }
+  return btoa(bin);
+}
+
+async function addPdfFromFile(file){
+  if(!adminMode || !file) return;
+  if(!/\.pdf$/i.test(file.name)){ alert('فقط فایل PDF قابل قبوله.'); return; }
+  if(file.size > 25 * 1024 * 1024){ alert('حجم فایل بیشتر از ۲۵ مگابایته. فایل کوچیک‌تری انتخاب کنید.'); return; }
+  if(!getToken()){ setToken(); if(!getToken()) return; }
+
+  let name = prompt('اسم جزوه (همین اسم تو لیست نمایش داده میشه):', file.name);
+  if(name === null) return;
+  name = name.trim().replace(/[\\\/#?%]/g, '-');
+  if(!name) return;
+  if(!/\.pdf$/i.test(name)) name += '.pdf';
+
+  try{
+    showToast('⏳ در حال آپلود… صبر کنید.');
+    let sha = null;
+    const ex = await fetch(pdfApiUrl(name) + `?ref=${GH_BRANCH}&t=${Date.now()}`, {headers: ghHeaders(), cache: 'no-store'});
+    if(ex.ok){
+      if(!confirm('فایلی با این اسم از قبل هست. جایگزین بشه؟')) return;
+      sha = (await ex.json()).sha;
+    }
+    const body = {message: 'افزودن جزوه: ' + name, content: bufToB64(await file.arrayBuffer()), branch: GH_BRANCH};
+    if(sha) body.sha = sha;
+    const up = await fetch(pdfApiUrl(name), {method: 'PUT', headers: ghHeaders(true), body: JSON.stringify(body)});
+    if(!up.ok) throw new Error('GitHub ' + up.status);
+  }catch(e){
+    alert('آپلود نشد (' + e.message + '). اگه 401 یا 403 بود، توکن مشکل داره. اگه اینترنت ضعیفه، دوباره امتحان کنید.');
+    return;
+  }
+  const ok = await saveChange(d => { if(!d.pdfs.includes(name)) d.pdfs.push(name); }, 'افزودن جزوه به لیست: ' + name);
+  if(ok){ renderChips(); render(); }
+  else alert('فایل آپلود شد ولی تو لیست ثبت نشد. همون فایل رو دوباره انتخاب کنید تا ثبت بشه.');
+}
+
+async function deletePdf(name){
+  if(!adminMode) return;
+  if(!confirm(`جزوه «${name}» کامل حذف بشه؟ این کار برگشت نداره.`)) return;
+  if(!getToken()){ setToken(); if(!getToken()) return; }
+  try{
+    const r = await fetch(pdfApiUrl(name) + `?ref=${GH_BRANCH}&t=${Date.now()}`, {headers: ghHeaders(), cache: 'no-store'});
+    if(r.ok){
+      const j = await r.json();
+      const del = await fetch(pdfApiUrl(name), {method: 'DELETE', headers: ghHeaders(true),
+        body: JSON.stringify({message: 'حذف جزوه: ' + name, sha: j.sha, branch: GH_BRANCH})});
+      if(!del.ok) throw new Error('GitHub ' + del.status);
+    }
+  }catch(e){
+    alert('حذف نشد (' + e.message + ').');
+    return;
+  }
+  const ok = await saveChange(d => { d.pdfs = d.pdfs.filter(x => x !== name); }, 'حذف جزوه از لیست: ' + name);
+  if(ok){ renderChips(); render(); }
+}
+
+document.getElementById('pdfFileInput').addEventListener('change', async (e) => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  await addPdfFromFile(f);
+});
 
 // ===== borrow toggle =====
 async function toggleBook(id, book){
@@ -794,12 +883,18 @@ function renderPdfBlock(files, showCount){
   head.innerHTML = `<h2>📄 جزوه‌های آموزشی</h2><div class="count mono">${toFa(showCount)} فایل</div>`;
   block.appendChild(head);
   const list = document.createElement('div');
-  list.innerHTML = files.map(f => `
-    <a class="pdf-row" href="${f.url}" download="${escapeHtml(f.name)}">
-      <span class="pdf-name">📄 ${escapeHtml(f.name.replace(/\.pdf$/i,''))}</span>
-      <span class="pdf-dl">دانلود ⬇</span>
-    </a>
+  list.innerHTML = files.map((f, i) => `
+    <div class="pdf-item">
+      <a class="pdf-row" href="${f.url}" download="${escapeHtml(f.name)}">
+        <span class="pdf-name">📄 ${escapeHtml(f.name.replace(/\.pdf$/i,''))}</span>
+        <span class="pdf-dl">دانلود ⬇</span>
+      </a>
+      ${adminMode && f.extra ? `<button class="icon-btn danger pdf-del" data-i="${i}" title="حذف جزوه">🗑</button>` : ''}
+    </div>
   `).join('');
+  list.querySelectorAll('.pdf-del').forEach(btn => {
+    btn.addEventListener('click', () => deletePdf(files[Number(btn.getAttribute('data-i'))].name));
+  });
   block.appendChild(list);
   return block;
 }
@@ -995,8 +1090,18 @@ const staticPdfList = [
 ];
 
 let pdfFiles = [];
+const GH_PDF_DIR = 'جزوه-ها';
+function refreshPdfFiles(){
+  const seen = new Set();
+  pdfFiles = [];
+  staticPdfList.concat(extraPdfs).forEach(f => {
+    if(seen.has(f)) return;
+    seen.add(f);
+    pdfFiles.push({ name: f, url: `${GH_PDF_DIR}/${encodeURIComponent(f)}`, extra: extraPdfs.includes(f) });
+  });
+}
 async function loadPdfList(){
-  pdfFiles = staticPdfList.map(f => ({ name: f, url: `جزوه-ها/${encodeURIComponent(f)}` }));
+  refreshPdfFiles();
   renderChips();
   if(activeCat === 'pdfs') render();
 }

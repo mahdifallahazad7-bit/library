@@ -413,6 +413,7 @@
     <div class="chips" id="chips"></div>
     <button class="admin-btn" id="addBookBtn" onclick="openAddBookModal()" style="display:none;">➕ افزودن کتاب</button>
     <button class="admin-btn" id="addPdfBtn" onclick="document.getElementById('pdfFileInput').click()" style="display:none;">📄 افزودن جزوه (PDF)</button>
+    <button class="admin-btn" id="addLinkBtn" onclick="addLink()" style="display:none;">🔗 افزودن لینک جزوه</button>
     <input type="file" id="pdfFileInput" accept="application/pdf,.pdf" style="display:none;">
   </div>
 </div>
@@ -467,6 +468,7 @@ let query = '';
 let bookStatus = {};   // { id: {borrowed: n, note: "..."} }
 let extraBooks = [];   // books added later by admin
 let overrides = {};
+let extraLinks = [];  // external download links for heavy files {name, url}
 let hiddenPdfs = [];  // PDFs hidden from the list (deleted by admin)
 let extraPdfs = [];   // PDFs added from the admin panel (names only)    // { id: {count: n} or {deleted: true} }
 let adminMode = sessionStorage.getItem('adminMode') === '1';
@@ -501,7 +503,8 @@ function normData(d){
     extraBooks: Array.isArray(d.extraBooks) ? d.extraBooks : [],
     overrides: isObj(d.overrides) ? d.overrides : {},
     pdfs: Array.isArray(d.pdfs) ? d.pdfs : [],
-    hiddenPdfs: Array.isArray(d.hiddenPdfs) ? d.hiddenPdfs : []
+    hiddenPdfs: Array.isArray(d.hiddenPdfs) ? d.hiddenPdfs : [],
+    links: Array.isArray(d.links) ? d.links.filter(l => l && l.name && /^https?:\/\/[^\s"'<>]+$/i.test(l.url || '')) : []
   };
 }
 function applyData(d){
@@ -511,6 +514,7 @@ function applyData(d){
   overrides = d.overrides;
   extraPdfs = d.pdfs;
   hiddenPdfs = d.hiddenPdfs;
+  extraLinks = d.links;
 }
 function getToken(){ try{ return localStorage.getItem('ghToken') || ''; }catch(e){ return ''; } }
 
@@ -644,12 +648,14 @@ function updateAdminUI(){
     btn.textContent = '🔓 خروج از حالت مدیر';
     addBtn.style.display = 'inline-flex';
     document.getElementById('addPdfBtn').style.display = 'inline-flex';
+    document.getElementById('addLinkBtn').style.display = 'inline-flex';
     document.getElementById('tokenBtn').style.display = 'inline-flex';
   } else {
     document.getElementById('tokenBtn').style.display = 'none';
     btn.textContent = '🔒 ورود مدیر';
     addBtn.style.display = 'none';
     document.getElementById('addPdfBtn').style.display = 'none';
+    document.getElementById('addLinkBtn').style.display = 'none';
   }
 }
 
@@ -733,6 +739,32 @@ async function addPdfFromFile(file){
   }, 'افزودن جزوه به لیست: ' + name);
   if(ok){ renderChips(); render(); }
   else alert('فایل آپلود شد ولی تو لیست ثبت نشد. همون فایل رو دوباره انتخاب کنید تا ثبت بشه.');
+}
+
+async function addLink(){
+  if(!adminMode) return;
+  let name = prompt('اسم جزوه (همین اسم تو لیست نمایش داده میشه):');
+  if(!name || !name.trim()) return;
+  name = name.trim();
+  let url = prompt('آدرس دانلود (لینک کامل، با http یا https شروع بشه):');
+  if(!url) return;
+  url = url.trim();
+  if(!/^https?:\/\/[^\s"'<>]+$/i.test(url)){
+    alert('آدرس معتبر نیست. باید با http:// یا https:// شروع بشه و فاصله نداشته باشه.');
+    return;
+  }
+  const ok = await saveChange(d => {
+    d.links = d.links.filter(l => l.url !== url);
+    d.links.push({name, url});
+  }, 'افزودن لینک جزوه: ' + name);
+  if(ok){ renderChips(); render(); }
+}
+
+async function deleteLink(name, url){
+  if(!adminMode) return;
+  if(!confirm(`لینک «${name}» از لیست حذف بشه؟ (خود فایل جای دیگه می‌مونه.)`)) return;
+  const ok = await saveChange(d => { d.links = d.links.filter(l => l.url !== url); }, 'حذف لینک جزوه: ' + name);
+  if(ok){ renderChips(); render(); }
 }
 
 async function deleteRepoFile(name){
@@ -937,15 +969,23 @@ function renderPdfBlock(files, showCount){
   const list = document.createElement('div');
   list.innerHTML = files.map((f, i) => `
     <div class="pdf-item">
-      <a class="pdf-row" href="${f.url}" download="${escapeHtml(f.name)}">
-        <span class="pdf-name">📄 ${escapeHtml(f.name.replace(/\.pdf$/i,''))}</span>
-        <span class="pdf-dl">دانلود ⬇</span>
-      </a>
-      ${adminMode ? `<button class="icon-btn danger pdf-del" data-i="${i}" title="حذف جزوه">🗑</button>` : ''}
+      ${f.link
+        ? `<a class="pdf-row" href="${f.url}" target="_blank" rel="noopener">
+            <span class="pdf-name">🔗 ${escapeHtml(f.name)}</span>
+            <span class="pdf-dl">دانلود ↗</span>
+          </a>`
+        : `<a class="pdf-row" href="${f.url}" download="${escapeHtml(f.name)}">
+            <span class="pdf-name">📄 ${escapeHtml(f.name.replace(/\.pdf$/i,''))}</span>
+            <span class="pdf-dl">دانلود ⬇</span>
+          </a>`}
+      ${adminMode ? `<button class="icon-btn danger pdf-del" data-i="${i}" title="حذف">🗑</button>` : ''}
     </div>
   `).join('');
   list.querySelectorAll('.pdf-del').forEach(btn => {
-    btn.addEventListener('click', () => deletePdf(files[Number(btn.getAttribute('data-i'))].name));
+    btn.addEventListener('click', () => {
+      const f = files[Number(btn.getAttribute('data-i'))];
+      if(f.link) deleteLink(f.name, f.url); else deletePdf(f.name);
+    });
   });
   block.appendChild(list);
   return block;
@@ -1151,6 +1191,7 @@ function refreshPdfFiles(){
     seen.add(f);
     pdfFiles.push({ name: f, url: `${GH_PDF_DIR}/${encodeURIComponent(f)}`, extra: extraPdfs.includes(f) });
   });
+  extraLinks.forEach(l => pdfFiles.push({ name: l.name, url: l.url, link: true }));
 }
 async function loadPdfList(){
   refreshPdfFiles();

@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>کتابخانه فنی ایستا نوآوران نیرو</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#101c2c">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="کتابخانه فنی">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -390,6 +396,7 @@
     <div class="notice">📚 کتاب مورد نظرتون رو پیدا کردید؟ برای درخواست و امانت گرفتن، حضوری به <b>واحد آموزش</b> مراجعه کنید.<br>لطفاً دوستانی که PDF آموزشی خوبی دارند به آقای فلاح آزاد تحویل دهند تا مراحل بارگذاری در کتابخانه را انجام دهند.</div>
     <button class="qr-toggle" id="qrToggle" onclick="toggleQr()">▤ بارکد ورود به لیست برای چاپ</button>
     <button class="qr-toggle" id="adminToggle" onclick="toggleAdmin()">🔒 ورود مدیر</button>
+    <button class="qr-toggle" id="installBtn" onclick="installApp()">📲 افزودن به صفحه‌ی گوشی</button>
     <button class="qr-toggle" id="tokenBtn" onclick="setToken()" style="display:none;">🔑 توکن ذخیره‌سازی</button>
   </div>
 </header>
@@ -1303,6 +1310,39 @@ function updateClock(){
 }
 updateClock();
 setInterval(updateClock, 1000);
+
+// ===== add to home screen =====
+let deferredInstall = null;
+function isStandalone(){
+  return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+}
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; });
+window.addEventListener('appinstalled', () => {
+  deferredInstall = null;
+  const b = document.getElementById('installBtn');
+  if(b) b.style.display = 'none';
+  showToast('✅ به صفحه‌ی گوشی اضافه شد.');
+});
+async function installApp(){
+  if(deferredInstall){
+    deferredInstall.prompt();
+    try{ await deferredInstall.userChoice; }catch(e){}
+    deferredInstall = null;
+    return;
+  }
+  if(/iphone|ipad|ipod/i.test(navigator.userAgent)){
+    alert('برای اضافه کردن تو آیفون/آیپد:\n۱) دکمه‌ی اشتراک‌گذاری (Share) پایین مرورگر Safari رو بزنید.\n۲) گزینه‌ی «Add to Home Screen» رو انتخاب کنید.\n۳) «Add» رو بزنید.\n(این کار فقط با مرورگر Safari جواب میده.)');
+  } else {
+    alert('برای اضافه کردن تو اندروید:\n۱) منوی مرورگر (سه‌نقطه‌ی بالای صفحه) رو بزنید.\n۲) «Add to Home screen» یا «Install app» رو انتخاب کنید.\n۳) تأیید کنید.');
+  }
+}
+if(isStandalone()){
+  const ib = document.getElementById('installBtn');
+  if(ib) ib.style.display = 'none';
+}
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+}
 
 // ===== QR code =====
 const pageUrl = 'https://mahdifallahazad7-bit.github.io/library/';

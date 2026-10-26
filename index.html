@@ -398,6 +398,7 @@
     <button class="qr-toggle" id="adminToggle" onclick="toggleAdmin()">🔒 ورود مدیر</button>
     <button class="qr-toggle" id="installBtn" onclick="installApp()">📲 افزودن به صفحه‌ی گوشی</button>
     <button class="qr-toggle" id="tokenBtn" onclick="setToken()" style="display:none;">🔑 توکن ذخیره‌سازی</button>
+    <button class="qr-toggle" id="statsBtn" onclick="statsAction()" style="display:none;">📊 آمار بازدید</button>
   </div>
 </header>
 
@@ -475,6 +476,8 @@ let query = '';
 let bookStatus = {};   // { id: {borrowed: n, note: "..."} }
 let extraBooks = [];   // books added later by admin
 let overrides = {};
+let statsCode = '';
+let statsStarted = false;
 let extraLinks = [];  // external download links for heavy files {name, url}
 let hiddenPdfs = [];  // PDFs hidden from the list (deleted by admin)
 let extraPdfs = [];   // PDFs added from the admin panel (names only)    // { id: {count: n} or {deleted: true} }
@@ -511,6 +514,7 @@ function normData(d){
     overrides: isObj(d.overrides) ? d.overrides : {},
     pdfs: Array.isArray(d.pdfs) ? d.pdfs : [],
     hiddenPdfs: Array.isArray(d.hiddenPdfs) ? d.hiddenPdfs : [],
+    statsCode: (typeof d.statsCode === 'string' && /^[a-z0-9-]{1,40}$/i.test(d.statsCode)) ? d.statsCode : '',
     links: Array.isArray(d.links) ? d.links.filter(l => l && l.name && /^https?:\/\/[^\s"'<>]+$/i.test(l.url || '')) : []
   };
 }
@@ -522,6 +526,8 @@ function applyData(d){
   extraPdfs = d.pdfs;
   hiddenPdfs = d.hiddenPdfs;
   extraLinks = d.links;
+  statsCode = d.statsCode;
+  startStats();
 }
 function getToken(){ try{ return localStorage.getItem('ghToken') || ''; }catch(e){ return ''; } }
 
@@ -657,8 +663,10 @@ function updateAdminUI(){
     document.getElementById('addPdfBtn').style.display = 'inline-flex';
     document.getElementById('addLinkBtn').style.display = 'inline-flex';
     document.getElementById('tokenBtn').style.display = 'inline-flex';
+    document.getElementById('statsBtn').style.display = 'inline-flex';
   } else {
     document.getElementById('tokenBtn').style.display = 'none';
+    document.getElementById('statsBtn').style.display = 'none';
     btn.textContent = '🔒 ورود مدیر';
     addBtn.style.display = 'none';
     document.getElementById('addPdfBtn').style.display = 'none';
@@ -1310,6 +1318,39 @@ function updateClock(){
 }
 updateClock();
 setInterval(updateClock, 1000);
+
+// ===== visit statistics (GoatCounter) =====
+// The site code is stored in data.json by the admin. Visits from a device that holds
+// the admin token are not counted.
+function startStats(){
+  if(statsStarted || !statsCode || getToken()) return;
+  statsStarted = true;
+  const sc = document.createElement('script');
+  sc.async = true;
+  sc.setAttribute('data-goatcounter', `https://${statsCode}.goatcounter.com/count`);
+  sc.src = 'https://gc.zgo.at/count.js';
+  document.head.appendChild(sc);
+}
+async function statsAction(){
+  if(!adminMode) return;
+  if(statsCode){
+    if(confirm('داشبورد آمار باز بشه؟\n(اگه می‌خوای کد آمار رو عوض کنی، «Cancel» رو بزن.)')){
+      window.open(`https://${statsCode}.goatcounter.com`, '_blank', 'noopener');
+      return;
+    }
+  }
+  const input = prompt('کد سایت GoatCounter رو وارد کنید (مثلاً inco-library). اگه خالی بذارید، شمارش خاموش میشه:', statsCode);
+  if(input === null) return;
+  let code = input.trim();
+  const m = code.match(/([a-z0-9-]+)\.goatcounter\.com/i);
+  if(m) code = m[1];
+  if(code && !/^[a-z0-9-]{1,40}$/i.test(code)){
+    alert('کد معتبر نیست. فقط حروف انگلیسی، عدد و خط تیره.');
+    return;
+  }
+  const ok = await saveChange(d => { d.statsCode = code; }, 'تنظیم کد آمار');
+  if(ok) showToast(code ? '📊 کد آمار ذخیره شد. شمارش بازدید برای بقیه حدود ۱ تا ۲ دقیقه دیگه شروع میشه.' : 'شمارش بازدید خاموش شد.');
+}
 
 // ===== add to home screen =====
 let deferredInstall = null;
